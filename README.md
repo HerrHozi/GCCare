@@ -5,11 +5,12 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-7.1%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Maintenance](https://img.shields.io/badge/status-active-brightgreen)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/HerrHozi/GCCare)
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.8.19.925
-Last Update:     2026-08-19
+Current Version: 2026.8.25.777
+Last Update:     2026-08-25
 ```
 
 GCCare is a PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It combines PowerShell command wrappers with bundled Python helpers to authenticate to Garmin Connect, upload FIT files, convert body-data CSV exports, calculate weekly averages, inspect the latest activity, analyze TCX files, and adjust workout files.

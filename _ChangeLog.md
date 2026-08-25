@@ -2,9 +2,12 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.8.19.925
-Last Update:     2026-08-19
+Current Version: 2026.8.25.777
+Last Update:     2026-08-25
 ```
+
+- Version 2026.8.25.777
+  - Update Readme File
 
 - Version 2026.8.19.925
   - Added Function Invoke-PipInstall.ps1
@@ -37,7 +40,7 @@ Set-Location $dir
 git pull
 git status
 git add -A
-git commit -m 'Version 2026.5.21.1342 is out - see also readme.md or changeLog.md'
+git commit -m 'Version 2026.8.25.777 is out - see also readme.md or changeLog.md'
 git push
 
-Publish-Module -Exclude '.git\*' -Name .\GCCare.psd1
+Publish-Module -Exclude '.git\*' -Name .\GCCare.psd1  -NuGetApiKey $NuGetApiKey

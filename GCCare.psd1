@@ -7,31 +7,40 @@
 @{
     PrivateData       = @{
         PSData = @{
-            LastUpdate   = '2026-08-19'
+            LastUpdate = '2026-08-25'
             Tags         = @('Garmin', 'GarminConnect', 'PowerShell', 'PowerShellModule', 'FIT', 'TCX', 'Health', 'Fitness', 'BodyComposition', 'GarminConnectCare')
             ProjectUri   = 'https://github.com/HerrHozi/GCCare'
             LicenseUri   = 'https://github.com/HerrHozi/GCCare/blob/main/LICENSE'
             ReleaseNotes = '            
 
-2026.5.21.957
-        - Added Golden Ticket Attack to Phase 12 Domain Persistence.
+2026.8.19.925
+        - Added Function Invoke-PipInstall.ps1
 
-2026.5.18.1200
-        - Added GPO Template modification to Phase 12 Domain Persistence.
+2026.8.18.1071
+        - Added Functions Test-GCCarePythonInstalled.ps1 & Test-GCCarePipPackageInstalled.ps1
 
-v2026.5.7.1034 
-		- Privileged Escalation via ESC1 added. 
-        - Minor bug fixes and performance improvements.
-        
-2026.3.17.1034 
-		- Initial release of GCCare on PS Gallery.' 
+2026.6.9.954
+        - Updated Function Convert-SecToMin
+
+2026.6.4.614
+        - Updated Help Info & Readme file
+
+2026.6.1.1089
+        - Added Function Convert-TanitaExportToFitFile
+        - Added Function Send-FitFileToGarminConnect
+
+2026.6.1.823
+        - Added Function Update-TCXFile
+
+2026.5.22.1018
+        - First Version' 
         }
     } 
  
     
 
     RootModule        = 'GCCare.psm1'
-    ModuleVersion     = '2026.8.19.925'
+    ModuleVersion = '2026.8.25.777'
     GUID              = '18240772-2f3d-408e-be7e-bc1ca3d407d9'
 
     Author            = 'Holger Zimmermann | zimmermann.holger@live.de'
