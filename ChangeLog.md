@@ -8,6 +8,7 @@ Last Update:     2026-10-01
 
 - Version 2026.10.1.1358
   - Remove unused Functions
+  - Update Help Context
 
 - Version 2026.10.1.746
   - Start removing Python
