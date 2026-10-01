@@ -7,10 +7,7 @@ Last Update:     2026-10-01
 ```
 
 - Version 2026.10.1.1358
-  - TBD
-
-- Version 2026.10.1.1101
-  - TBD
+  - Remove unused Functions
 
 - Version 2026.10.1.746
   - Start removing Python
