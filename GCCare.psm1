@@ -9,8 +9,9 @@ GCCare is a PowerShell module to maintain the Garmin Connect settings.
 
 .DESCRIPTION
 
-In addition, GCCare includes fitness-related utilities (for example:
-Tanita CSV -> FIT conversion and Garmin Connect upload workflows).
+GCCare is written in pure PowerShell. It signs in to Garmin Connect, calls the
+Garmin Connect API and includes fitness-related utilities (for example:
+Tanita CSV -> FIT conversion, FIT upload and TCX analysis).
 
 .MODULE STRUCTURE
 - Public\   : exported user commands
@@ -24,8 +25,8 @@ On import, the module:
 3. Exports public functions (and aliases, if defined)
 4. Optionally exports private functions when GCCare_EXPORT_PRIVATE=1
 5. Ensures required folders exist under $env:PUBLIC\GCCare
-6. Shows module banner/version and quick-start hints
-7. Runs requirement checks (Python + pip packages)
+6. Copies the default configuration (GCCare.json) if it does not exist yet
+7. Shows module banner/version and quick-start hints
 
 .DEFAULT DIRECTORIES
 - Logs:      $env:PUBLIC\GCCare\Logs
@@ -35,11 +36,10 @@ On import, the module:
 - FitFiles:  $env:PUBLIC\GCCare\FitFiles
 
 .REQUIREMENTS
-- PowerShell 7+ recommended
-- Python available in PATH
-- pip packages:
-  - fit-tool
-  - garminconnect
+- Windows
+- PowerShell 7.1 or later
+- Garmin Connect commands: token store created by Get-GarminToken
+  (default: ~\.garminconnect\garmin_tokens.json)
 
 .NOTES
 Author: HerrHozi | zimmermann.holger@live.de

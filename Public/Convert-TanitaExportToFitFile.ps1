@@ -4,9 +4,8 @@ Converts Tanita body measurement CSV data into Garmin-compatible FIT files.
 
 .DESCRIPTION
 Convert-TanitaExportToFitFile validates a Tanita CSV export, resolves the output directory,
-and writes one Garmin weight FIT file per measurement - in pure PowerShell, no Python required.
-The files contain a file_id and a weight_scale message and are byte-identical to the files
-of the former fit_tool based Python converter.
+and writes one Garmin weight FIT file per measurement directly from PowerShell.
+Each file contains a file_id and a weight_scale message.
 
 If no CSV file is provided, the function opens a file picker so that an input file
 can be selected interactively. Measurements with missing values ('-') are skipped.
@@ -33,7 +32,7 @@ If omitted, the function asks for the number of entries.
 
 .PARAMETER Upload
 Uploads the created FIT files directly to Garmin Connect (requires a token created by
-Get-GarminToken or Connect-GC).
+Get-GarminToken).
 
 .PARAMETER TokenStore
 Optional path to the Garmin token store directory or garmin_tokens.json file (used with -Upload).
@@ -60,7 +59,6 @@ Invoke-GarminConnectApi.
 
 .LINK
 https://developer.garmin.com/fit/protocol/
-https://github.com/cyberjunky/python-garminconnect
 https://www.fitfileviewer.com/
 #>
 Function Convert-TanitaExportToFitFile {

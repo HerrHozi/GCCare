@@ -1,33 +1,69 @@
-#Requires -Version 7.1
 <#
 .SYNOPSIS
-    Signs in to Garmin Connect and creates a DI OAuth2 bearer token.
+Signs in to Garmin Connect and creates a DI OAuth2 bearer token.
 
 .DESCRIPTION
-    Pure PowerShell port of the login used by the Python library "garminconnect" (0.3.x,
-    strategy "mobile+requests"):
-      1. POST e-mail/password to the Garmin SSO mobile API (optional MFA code) -> service ticket
-      2. Exchange the service ticket at diauth.garmin.com for a DI access + refresh token
-      3. With -Refresh: renew the access token from the stored refresh token (no password)
+`Get-GarminToken` signs in to Garmin Connect directly from PowerShell, using the same
+sign-in flow as the Garmin Connect mobile app:
+  1. Sends e-mail and password (and an MFA code, if required) to the Garmin SSO mobile API
+     and receives a service ticket.
+  2. Exchanges the service ticket at diauth.garmin.com for a DI access token and refresh token.
+  3. With -Refresh: renews the access token with the stored refresh token - no password needed.
 
-    The token file uses the same format as garminconnect (garmin_tokens.json), so the
-    tokens can be shared with GCCare / Connect-GC.
+The tokens are saved to `garmin_tokens.json`. All GCCare functions that talk to Garmin Connect
+(`Get-GarminBadges`, `Get-GarminLastActivity`, `Get-GarminUser`, `Send-FitFileToGarminConnect`,
+`Convert-TanitaExportToFitFile -Upload`) read this file and refresh the access token
+automatically, so a sign-in is only needed again when the refresh token has expired.
 
-    Note: This is not an official Garmin API. Garmin may change the flow at any time.
+Returns an object with these properties:
+- AccessToken: DI bearer token for the `Authorization: Bearer` header.
+- ClientId:    DI client ID the token was issued for.
+- ExpiresAt:   Local expiry time of the access token.
+
+Note: This is not an official Garmin API. Garmin may change the sign-in flow at any time.
+
+.PARAMETER TokenFile
+Path of the token file. The default is `~\.garminconnect\garmin_tokens.json`, the default
+location used by all GCCare functions.
+
+.PARAMETER Refresh
+Skips the sign-in and renews the access token with the refresh token stored in the token file.
+
+.PARAMETER Test
+Verifies the new token with a call to `/userprofile-service/socialProfile` and shows the
+signed-in user.
+
+.OUTPUTS
+System.Management.Automation.PSCustomObject
+Returns `AccessToken`, `ClientId` and `ExpiresAt`.
+
+.NOTES
+- Requires PowerShell 7.1 or later.
+- Prompts for credentials with `Get-Credential` and for the MFA code with `Read-Host`.
+- HTTP 403 means Garmin's Cloudflare protection blocked the request; HTTP 429 means too many
+  sign-in attempts. In both cases wait and try again later or from another network.
 
 .EXAMPLE
-    .\Get-GarminToken.ps1 -Test
+Get-GarminToken -Test
+
+Signs in to Garmin Connect, saves the tokens and verifies them with an API call.
 
 .EXAMPLE
-    $token = .\Get-GarminToken.ps1 -Refresh
-    Invoke-RestMethod 'https://connectapi.garmin.com/userprofile-service/socialProfile' `
-        -Headers @{ Authorization = "Bearer $($token.AccessToken)"; 'User-Agent' = 'GCM-Android-5.23' }
+Get-GarminToken -Refresh
+
+Renews the access token without signing in again.
+
+.EXAMPLE
+$token = Get-GarminToken -Refresh
+Invoke-RestMethod 'https://connectapi.garmin.com/userprofile-service/socialProfile' `
+    -Headers @{ Authorization = "Bearer $($token.AccessToken)"; 'User-Agent' = 'GCM-Android-5.23' }
+
+Uses the access token for an own API call.
 #>
-
 Function Get-GarminToken {
     [CmdletBinding()]
     param(
-        # Token file (same default location and format as garminconnect)
+        # Token file (default location used by all GCCare functions)
         [string]$TokenFile = (Join-Path $HOME '.garminconnect\garmin_tokens.json'),
 
         # Skip sign-in: renew the access token with the stored refresh token
@@ -95,7 +131,7 @@ Function Get-GarminToken {
             throw "$Step was rate limited by Garmin (HTTP 429). Wait at least an hour before trying again."
         }
         if ($status -eq 403) {
-            throw "$Step was blocked by Garmin's Cloudflare protection (HTTP 403). Try again later, from another network, or use Connect-GC (Python, TLS impersonation)."
+            throw "$Step was blocked by Garmin's Cloudflare protection (HTTP 403). Try again later or from another network."
         }
         try {
             $Response.Content | ConvertFrom-Json
@@ -204,7 +240,7 @@ Function Get-GarminToken {
     }
 
     function New-TokenStore([string]$AccessToken, [string]$RefreshToken, [string]$FallbackClientId) {
-        # Same structure as garminconnect's dumps(); the client ID is taken from the JWT when present
+        # Token file structure; the client ID is taken from the JWT when present
         $clientId = $FallbackClientId
         $payload = ConvertFrom-JwtPayload $AccessToken
         if ($payload -and $payload.PSObject.Properties['client_id'] -and $payload.client_id) { $clientId = [string]$payload.client_id }
@@ -233,7 +269,7 @@ Function Get-GarminToken {
         $store = Get-DiToken $ticket
     }
 
-    # Save (UTF-8 without BOM, compatible with garminconnect)
+    # Save (UTF-8 without BOM)
     $dir = Split-Path $TokenFile -Parent
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
     $store | ConvertTo-Json -Compress | Set-Content -Path $TokenFile -Encoding utf8NoBOM

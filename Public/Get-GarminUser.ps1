@@ -5,8 +5,8 @@ Fetches the Garmin Connect user profile and personal settings.
 .DESCRIPTION
 `Get-GarminUser` calls the Garmin Connect API endpoints
 `/userprofile-service/socialProfile` and `/userprofile-service/userprofile/user-settings`
-directly from PowerShell - no Python required. Authentication uses the DI OAuth2 token store
-written by `Get-GarminToken.ps1` or `Connect-GC` (`garmin_tokens.json`). An access token that
+directly from PowerShell. Authentication uses the DI OAuth2 token store
+written by `Get-GarminToken` (`garmin_tokens.json`). An access token that
 expires within 15 minutes is refreshed automatically and saved back.
 
 Returns a summary object with these properties:
@@ -38,6 +38,10 @@ Defaults to `$env:GARMINTOKENS`, then `~\.garminconnect`.
 Optional switch to return the unmodified API objects (`SocialProfile`, `UserSettings`)
 instead of the summary.
 
+.PARAMETER Quiet
+Optional switch to suppress the console output (header, summary and success message).
+Only the result object is returned.
+
 .PARAMETER EnableLogging
 Optional switch to enable module logging behavior (if supported by module logging helpers).
 
@@ -48,7 +52,7 @@ Returns the user summary, or the raw API objects with `-Raw`.
 .NOTES
 - Requires helper functions in module scope:
   `Get-FunctionName`, `Write-Log`, `Invoke-Output`, `Get-RunTime`, `Invoke-GarminConnectApi`.
-- Requires a token file created by `Get-GarminToken.ps1` or `Connect-GC`.
+- Requires a token file created by `Get-GarminToken`.
 
 .EXAMPLE
 Get-GarminUser
@@ -59,6 +63,11 @@ Returns a summary of the Garmin Connect user.
 (Get-GarminUser).DisplayName
 
 Returns the display name, e.g. for API paths like `/usersummary-service/usersummary/daily/{displayName}`.
+
+.EXAMPLE
+$user = Get-GarminUser -Quiet
+
+Fetches the user profile without console output, e.g. for use in other functions.
 
 .EXAMPLE
 Get-GarminUser -Raw | Select-Object -ExpandProperty UserSettings

@@ -1,7 +1,7 @@
 ################################################################################
 #####                                                                      #####
-#####    Native Garmin Connect API access (pure PowerShell, no Python)     #####
-#####    Uses the DI OAuth2 token store of garminconnect / Connect-GC      #####
+#####    Native Garmin Connect API access (pure PowerShell)                #####
+#####    Uses the DI OAuth2 token store written by Get-GarminToken         #####
 #####                                                                      #####
 ################################################################################
 
@@ -9,7 +9,7 @@ $Script:GarminConnectApiBase = 'https://connectapi.garmin.com'
 $Script:GarminDiTokenUrl = 'https://diauth.garmin.com/di-oauth2-service/oauth/token'
 
 function Get-GarminNativeHeaders {
-    # Headers of the Garmin Connect Android app (same as garminconnect's _native_headers)
+    # Headers of the Garmin Connect Android app
     param(
         [hashtable]$Extra = @{}
     )
@@ -53,7 +53,7 @@ function ConvertFrom-GarminJwtPayload {
 }
 
 function Resolve-GarminTokenFile {
-    # Same rules as garminconnect: a directory (default ~/.garminconnect) means <dir>\garmin_tokens.json
+    # A directory (default ~/.garminconnect) means <dir>\garmin_tokens.json
     param(
         [string]$TokenStore
     )
@@ -80,12 +80,12 @@ function Get-GarminAccessToken {
 
     $tokenFile = Resolve-GarminTokenFile -TokenStore $TokenStore
     if (-not (Test-Path -LiteralPath $tokenFile -PathType Leaf)) {
-        throw "No Garmin token file found at '$tokenFile'. Sign in first with Get-GarminToken.ps1 or Connect-GC."
+        throw "No Garmin token file found at '$tokenFile'. Sign in first with Get-GarminToken."
     }
 
     $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
     if (-not $store.di_token) {
-        throw "The token file '$tokenFile' contains no DI token. Sign in again with Get-GarminToken.ps1 or Connect-GC."
+        throw "The token file '$tokenFile' contains no DI token. Sign in again with Get-GarminToken."
     }
 
     $payload = ConvertFrom-GarminJwtPayload -Token $store.di_token
@@ -96,7 +96,7 @@ function Get-GarminAccessToken {
 
     Write-Log -Message "    >> DI token expires soon, refreshing ($tokenFile)"
     if (-not $store.di_refresh_token -or -not $store.di_client_id) {
-        throw 'The Garmin access token has expired and no refresh token is available. Sign in again with Get-GarminToken.ps1 or Connect-GC.'
+        throw 'The Garmin access token has expired and no refresh token is available. Sign in again with Get-GarminToken.'
     }
 
     $basicAuth = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($store.di_client_id):"))
@@ -106,7 +106,7 @@ function Get-GarminAccessToken {
         -Body @{ grant_type = 'refresh_token'; client_id = $store.di_client_id; refresh_token = $store.di_refresh_token }
 
     if ([int]$response.StatusCode -ne 200) {
-        throw "Garmin token refresh failed (HTTP $([int]$response.StatusCode)). Sign in again with Get-GarminToken.ps1 or Connect-GC."
+        throw "Garmin token refresh failed (HTTP $([int]$response.StatusCode)). Sign in again with Get-GarminToken."
     }
 
     $data = $response.Content | ConvertFrom-Json
@@ -186,7 +186,7 @@ function Invoke-GarminConnectApi {
         }
         204 { return $null }
         409 { throw "Garmin API $Path : conflict (409), e.g. the activity already exists." }
-        401 { throw "Garmin API $Path : authentication required (401). Sign in again with Get-GarminToken.ps1 or Connect-GC." }
+        401 { throw "Garmin API $Path : authentication required (401). Sign in again with Get-GarminToken." }
         403 { throw "Garmin API $Path : access denied (403)." }
         404 { throw "Garmin API $Path : not found (404), the endpoint may have moved." }
         429 { throw "Garmin API $Path : rate limited (429), please wait before retrying." }

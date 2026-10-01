@@ -4,8 +4,8 @@ Fetches the earned Garmin Connect badges and summarizes them by year, month or n
 
 .DESCRIPTION
 `Get-GarminBadges` calls the Garmin Connect API endpoint `/badge-service/badge/earned`
-directly from PowerShell - no Python required. Authentication uses the DI OAuth2 token
-store written by `Get-GarminToken.ps1` or `Connect-GC` (`garmin_tokens.json`). An access
+directly from PowerShell. Authentication uses the DI OAuth2 token
+store written by `Get-GarminToken` (`garmin_tokens.json`). An access
 token that expires within 15 minutes is refreshed automatically and saved back.
 
 Before returning, the function writes a console summary: total number of badges,
@@ -51,7 +51,7 @@ Returns the earned badges, or summary objects when `-GroupBy` is specified.
 .NOTES
 - Requires helper functions in module scope:
   `Get-FunctionName`, `Write-Log`, `Invoke-Output`, `Get-RunTime`, `Invoke-GarminConnectApi`.
-- Requires a token file created by `Get-GarminToken.ps1` or `Connect-GC`.
+- Requires a token file created by `Get-GarminToken`.
 - Badges without an earned date are excluded from the yearly and monthly rows,
   but are counted in the 'Total' row.
 

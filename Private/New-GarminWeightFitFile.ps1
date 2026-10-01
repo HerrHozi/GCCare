@@ -1,7 +1,7 @@
 ################################################################################
 #####                                                                      #####
 #####    Pure PowerShell FIT encoder for Garmin weight scale files         #####
-#####    (replaces fit_tool: file_id + weight_scale message)               #####
+#####    (file_id + weight_scale message)                                  #####
 #####                                                                      #####
 ################################################################################
 
@@ -82,7 +82,7 @@ function Write-FitMessage {
 }
 
 function New-GarminWeightFitFile {
-    # Creates a Garmin weight FIT file with the same layout as the former fit_tool script
+    # Creates a Garmin weight FIT file (file_id + weight_scale message)
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,

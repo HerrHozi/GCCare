@@ -4,9 +4,9 @@ Fetches the most recent Garmin Connect activity.
 
 .DESCRIPTION
 `Get-GarminLastActivity` calls the Garmin Connect API endpoint
-`/activitylist-service/activities/search/activities` directly from PowerShell - no Python
-required. Authentication uses the DI OAuth2 token store written by `Get-GarminToken.ps1`
-or `Connect-GC` (`garmin_tokens.json`). An access token that expires within 15 minutes is
+`/activitylist-service/activities/search/activities` directly from PowerShell.
+ Authentication uses the DI OAuth2 token store written by `Get-GarminToken`
+(`garmin_tokens.json`). An access token that expires within 15 minutes is
 refreshed automatically and saved back.
 
 Returns a summary object with these properties:
@@ -36,7 +36,7 @@ Returns the summary of the last activity, or the raw API object with `-Raw`.
 .NOTES
 - Requires helper functions in module scope:
   `Get-FunctionName`, `Write-Log`, `Invoke-Output`, `Get-RunTime`, `Invoke-GarminConnectApi`.
-- Requires a token file created by `Get-GarminToken.ps1` or `Connect-GC`.
+- Requires a token file created by `Get-GarminToken`.
 
 .EXAMPLE
 Get-GarminLastActivity
