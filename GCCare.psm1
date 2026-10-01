@@ -210,22 +210,12 @@ Write-Host "`n  [>] Quick-Start: " -NoNewline -ForegroundColor Gray
 
 Write-HighlightedCode  -code "Update-TCXFile"
 Write-HighlightedCode  -code "                   Convert-TanitaExportToFitFile"
-Write-HighlightedCode  -code "                   New-GarminConnectSession"
+Write-HighlightedCode  -code "                   Get-GarminToken"
 Write-HighlightedCode  -code "                   Send-FitFileToGarminConnect"
 Write-HighlightedCode  -code "                   Get-WeeklyBodyMetrics"
 Write-HighlightedCode  -code "                   Invoke-TCXFileAnalysis | Select-Object Lap, TotalDistance, TotalTime,  Laptime, MovingTime, NonMovingTime, AscentMeters, DescentMeters, TotalAscentMeters, TotalDescentMeters | ft"
 Write-HighlightedCode  -code "                   Get-GarminBadges -GroupBy Month | Where-Object {`$_.Year -eq 2025} | ft"
-Write-HighlightedCode  -code "                   Start-GarminConnectAPIDemo"
+Write-HighlightedCode  -code "                   Get-GarminUser | Ft"
 
 Write-host "`n"
 $host.ui.RawUI.WindowTitle = "$GGCModuleName - $($GGCModuleManifest.Version)"
-
-Invoke-Output -Type H1 -Message "Checking GCCare Requirements ..."
-Test-GCCarePythonInstalled
-Test-GCCarePipPackageInstalled -PackageName "fit-tool"
-Test-GCCarePipPackageInstalled -PackageName "garminconnect"
-Test-GCCarePipPackageInstalled -PackageName "readchar"
-Write-host "`n"
-
-
-

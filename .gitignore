@@ -5,7 +5,5 @@ Export/*
 Lib/*
 GCCare.code-workspace
 launch.json
-__pycache__/*
-Examples/*
 your_data/*
 Corefunctions/*

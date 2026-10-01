@@ -40,7 +40,7 @@
     
 
     RootModule        = 'GCCare.psm1'
-    ModuleVersion = '2026.10.1.1101'
+    ModuleVersion = '2026.10.1.1358'
     GUID              = '18240772-2f3d-408e-be7e-bc1ca3d407d9'
 
     Author            = 'Holger Zimmermann | zimmermann.holger@live.de'
