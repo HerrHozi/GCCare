@@ -2,9 +2,20 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.8.25.777
-Last Update:     2026-08-25
+Current Version: 2026.10.1.1419
+Last Update:     2026-10-01
 ```
+
+- Version 2026.10.1.1419
+  - Remove unused Functions
+  - Update Help Context
+
+- Version 2026.10.1.746
+  - Start removing Python
+  - Added Get-GarminUser
+
+- Version 2026.9.30.1129
+  - Added Function Get-GarminBadges
 
 - Version 2026.8.25.777
   - Update Readme File

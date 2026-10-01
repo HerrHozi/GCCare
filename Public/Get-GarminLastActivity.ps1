@@ -1,177 +1,110 @@
+<#
+.SYNOPSIS
+Fetches the most recent Garmin Connect activity.
+
+.DESCRIPTION
+`Get-GarminLastActivity` calls the Garmin Connect API endpoint
+`/activitylist-service/activities/search/activities` directly from PowerShell.
+ Authentication uses the DI OAuth2 token store written by `Get-GarminToken`
+(`garmin_tokens.json`). An access token that expires within 15 minutes is
+refreshed automatically and saved back.
+
+Returns a summary object with these properties:
+- Connected:           Always `$true` when the call succeeded.
+- ActivityId:          Garmin activity ID.
+- ActivityName:        Activity name.
+- ActivityType:        Activity type key (for example `running`).
+- StartTimeLocal:      Local start time as returned by Garmin.
+- DurationSeconds:     Duration in seconds.
+- DistanceKm:          Distance in kilometers, rounded to two decimals.
+- ElevationGainMeters: Elevation gain in meters.
+
+.PARAMETER TokenStore
+Optional path to the Garmin Connect token store directory or `garmin_tokens.json` file.
+Defaults to `$env:GARMINTOKENS`, then `~\.garminconnect`.
+
+.PARAMETER Raw
+Optional switch to return the unmodified activity object from the API instead of the summary.
+
+.PARAMETER EnableLogging
+Optional switch to enable module logging behavior (if supported by module logging helpers).
+
+.OUTPUTS
+System.Management.Automation.PSCustomObject
+Returns the summary of the last activity, or the raw API object with `-Raw`.
+
+.NOTES
+- Requires helper functions in module scope:
+  `Get-FunctionName`, `Write-Log`, `Invoke-Output`, `Get-RunTime`, `Invoke-GarminConnectApi`.
+- Requires a token file created by `Get-GarminToken`.
+
+.EXAMPLE
+Get-GarminLastActivity
+
+Returns a summary of the most recent Garmin Connect activity.
+
+.EXAMPLE
+Get-GarminLastActivity -TokenStore "C:\Temp\.garminconnect"
+
+Fetches the last activity using a custom token store.
+
+.EXAMPLE
+Get-GarminLastActivity -Raw
+
+Returns the complete activity object as delivered by the API.
+#>
 function Get-GarminLastActivity {
+
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $false)]
-        [Microsoft.PowerShell.Commands.WebRequestSession]$Session = $Global:GarminLoginSession,
-
-        [switch]$Raw
+        [string]$TokenStore,
+        [switch]$Raw,
+        [switch]$EnableLogging
     )
 
-    if ($null -eq $Session) {
-        throw 'No Garmin session found. Run New-GarminLoginSession first.'
-    }
+    $CurrentFunction = Get-FunctionName
+    Write-Log -Message "### Start Function $CurrentFunction ###"
+    $StartRunTime = (Get-Date).ToString($Script:DateFormatLog)
+    #################### main code | out- host #####################
 
-    $headers = @{
-        'User-Agent'      = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
-        'accept'          = 'application/json, text/plain, */*'
-        'accept-language' = 'en-US,en;q=0.9,de;q=0.8'
-        'origin'          = 'https://connect.garmin.com'
-        'referer'         = 'https://connect.garmin.com/modern/activities'
-    }
+    Invoke-Output -Type Header -Message "Fetching last Garmin Connect activity..."
 
-    $candidateUris = @(
-        'https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?start=0&limit=1',
-        'https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?start=0&limit=1&sortColumn=startTimeLocal&sortOrder=desc'
-    )
-
-    $lastError = $null
-    $response = $null
-
-    foreach ($uri in $candidateUris) {
-        try {
-            $response = Invoke-RestMethod -Uri $uri -Method GET -Headers $headers -WebSession $Session -ErrorAction Stop
-            if ($null -ne $response) {
-                break
-            }
-        }
-        catch {
-            $lastError = $_
-        }
-    }
-
-    if ($null -eq $response) {
-        if ($null -ne $lastError) {
-            throw $lastError
-        }
-
-        throw 'No response received from Garmin activity endpoints.'
-    }
-
-    $responseAsString = [string]$response
-    $isSignInHtmlResponse = (
-        -not [string]::IsNullOrWhiteSpace($responseAsString) -and
-        $responseAsString -match '(?is)<title>\s*Garmin Connect\s*\|\s*Sign In\s*</title>|signin\.astro|please enable JavaScript in your web browser'
-    )
-
-    if ($isSignInHtmlResponse) {
-        throw 'Garmin session is not authenticated for Connect APIs. The endpoint returned the Sign-In page. Please run New-GarminLoginSession again in the same terminal session.'
-    }
-
-    $getFirstActivity = {
-        param(
-            [Parameter(Mandatory = $true)]
-            [object]$InputObject
-        )
-
-        if ($null -eq $InputObject) {
-            return $null
-        }
-
-        if ($InputObject -is [array]) {
-            foreach ($item in $InputObject) {
-                $found = & $getFirstActivity -InputObject $item
-                if ($null -ne $found) {
-                    return $found
-                }
-            }
-
-            return $null
-        }
-
-        if ($InputObject -is [System.Collections.IEnumerable] -and -not ($InputObject -is [string])) {
-            foreach ($item in $InputObject) {
-                $found = & $getFirstActivity -InputObject $item
-                if ($null -ne $found) {
-                    return $found
-                }
-            }
-
-            return $null
-        }
-
-        $propertyBag = $InputObject.PSObject.Properties
-        if ($null -eq $propertyBag) {
-            return $null
-        }
-
-        $looksLikeActivity = (
-            $propertyBag.Name -contains 'activityId' -or
-            $propertyBag.Name -contains 'activityName' -or
-            $propertyBag.Name -contains 'startTimeLocal'
-        )
-
-        if ($looksLikeActivity) {
-            return $InputObject
-        }
-
-        $preferredContainers = @('activities', 'activityList', 'results', 'items', 'data', 'content')
-        foreach ($containerName in $preferredContainers) {
-            $containerProp = $propertyBag | Where-Object { $_.Name -eq $containerName } | Select-Object -First 1
-            if ($null -ne $containerProp) {
-                $found = & $getFirstActivity -InputObject $containerProp.Value
-                if ($null -ne $found) {
-                    return $found
-                }
-            }
-        }
-
-        foreach ($prop in $propertyBag) {
-            $found = & $getFirstActivity -InputObject $prop.Value
-            if ($null -ne $found) {
-                return $found
-            }
-        }
-
-        return $null
-    }
-
-    $activity = $null
-
-    $activity = & $getFirstActivity -InputObject $response
-
-    if ($Raw) {
-        return [pscustomobject]@{
-            ParsedActivity = $activity
-            Response       = $response
-            IsSignInHtml   = $isSignInHtmlResponse
-        }
-    }
+    $activities = @(Invoke-GarminConnectApi -Path '/activitylist-service/activities/search/activities' `
+            -Query @{ start = 0; limit = 1 } -TokenStore $TokenStore)
+    $activity = $activities | Select-Object -First 1
 
     if ($null -eq $activity) {
-        throw 'Connected, but no activity could be parsed from response.'
+        throw 'Connected, but no activity was returned by Garmin Connect.'
     }
 
-    $activityType = $null
-    if ($null -ne $activity.activityType) {
-        if ($activity.activityType.PSObject.Properties.Name -contains 'typeKey') {
-            $activityType = $activity.activityType.typeKey
+    Write-Log -Message "    >> Last activity: $($activity.activityId)"
+
+    if ($Raw) {
+        $result = $activity
+    }
+    else {
+        $distanceKm = $null
+        if ($null -ne $activity.distance) {
+            $distanceKm = [math]::Round(([double]$activity.distance / 1000.0), 2)
         }
-        elseif ($activity.activityType -is [string]) {
-            $activityType = $activity.activityType
+
+        $result = [pscustomobject]@{
+            Connected           = $true
+            ActivityId          = $activity.activityId
+            ActivityName        = $activity.activityName
+            ActivityType        = $activity.activityType.typeKey
+            StartTimeLocal      = $activity.startTimeLocal
+            DurationSeconds     = if ($null -ne $activity.duration) { $activity.duration } else { $activity.elapsedDuration }
+            DistanceKm          = $distanceKm
+            ElevationGainMeters = $activity.elevationGain
         }
     }
 
-    $durationSeconds = $null
-    if ($null -ne $activity.duration) {
-        $durationSeconds = $activity.duration
-    }
-    elseif ($null -ne $activity.elapsedDuration) {
-        $durationSeconds = $activity.elapsedDuration
-    }
+    Invoke-Output -Type Success -Message "Last Garmin Connect activity fetched successfully."
+    ######################## main code ############################
+    $runtime = Get-RunTime -StartRunTime $StartRunTime
+    Write-Log -Message "    Run Time: $runtime [h] ###"
+    Write-Log -Message "### End Function $CurrentFunction ###"
 
-    $distanceKm = $null
-    if ($null -ne $activity.distance) {
-        $distanceKm = [math]::Round(([double]$activity.distance / 1000.0), 2)
-    }
-
-    return [pscustomobject]@{
-        Connected           = $true
-        ActivityId          = $activity.activityId
-        ActivityName        = $activity.activityName
-        ActivityType        = $activityType
-        StartTimeLocal      = $activity.startTimeLocal
-        DurationSeconds     = $durationSeconds
-        DistanceKm          = $distanceKm
-        ElevationGainMeters = $activity.elevationGain
-    }
+    return $result
 }

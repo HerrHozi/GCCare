@@ -9,11 +9,11 @@
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.8.25.777
-Last Update:     2026-08-25
+Current Version: 2026.10.1.1419
+Last Update:     2026-10-01
 ```
 
-GCCare is a PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It combines PowerShell command wrappers with bundled Python helpers to authenticate to Garmin Connect, upload FIT files, convert body-data CSV exports, calculate weekly averages, inspect the latest activity, analyze TCX files, and adjust workout files.
+GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It signs in to Garmin Connect, talks to the Garmin Connect API, creates and uploads FIT files, converts body-data CSV exports, calculates weekly averages, reads badges, user profile and the latest activity, and analyzes or adjusts TCX files - without any external runtime.
 
 ## Project Information
 
@@ -26,44 +26,31 @@ GCCare is a PowerShell module for Garmin Connect workflows, Tanita body-composit
 
 GCCare currently provides the following capabilities:
 
-- Start or restore a Garmin Connect session from PowerShell.
-- Use the `Connect-GC` alias for the standard Garmin session helper.
+- Sign in to Garmin Connect (including MFA) and keep the access token fresh automatically.
+- Read the Garmin Connect user profile, earned badges with level summary, and the latest activity.
+- Convert Tanita CSV exports into Garmin-compatible weight FIT files.
 - Upload FIT files to Garmin Connect from a shared public workspace folder.
-- Convert Tanita CSV exports into Garmin-compatible FIT files.
 - Calculate weekly averages from body-composition data.
-- Query the last Garmin activity for the active session.
 - Analyze TCX lap metrics such as distance, time, moving time, ascent, descent, pace, and heart rate.
 - Update TCX files with recalculated lap distance and elevation values.
-- Install Python when it is missing on the machine.
 
 By default, GCCare stores generated data and intermediate files under `C:\Users\Public\GCCare`.
 
 ## Module Structure
 
-- `Public/`: exported PowerShell entry points
-- `Corefunctions/`: Python helpers and standalone scripts used by the PowerShell wrappers
-- `Private/`: internal PowerShell helper functions
+- `Public/`: exported PowerShell commands
+- `Private/`: internal PowerShell helper functions, including the Garmin Connect API client (`GarminConnectApi.ps1`) and the FIT encoder (`New-GarminWeightFitFile.ps1`)
+- `Docs/`: additional documentation, e.g. the Garmin Connect API reference (`GarminConnectApi.md`)
 - `Examples/`: sample FIT, TCX, and CSV files
-- `Corefunctions/test_data/`: small test data used during development
-- `C:\Users\Public\GCCare`: default shared workspace for generated FIT files, exported data, and session-related output
+- `C:\Users\Public\GCCare`: default shared workspace for generated FIT files, logs, and configuration
+- `~\.garminconnect\garmin_tokens.json`: default Garmin Connect token store
 
 ## Requirements
 
-### Platform
-
 - Windows
 - PowerShell 7.1 or later
-- Python available through `py.exe` or `python.exe`
 
-### Python Dependencies
-
-The Python-based workflows typically rely on the following packages:
-
-- `garminconnect`
-- `fit-tool`
-- `curl_cffi`
-
-Some scripts may also depend on `readchar` depending on the selected workflow and Python environment.
+No additional runtimes or packages are required.
 
 ## Installation
 
@@ -80,49 +67,49 @@ Install-Module -Name GCCare -Scope CurrentUser -Force
 Import-Module GCCare -Force
 ```
 
-### Default data folder
+### Default folders
 
-All generated data and working files are expected to be stored under the shared public folder:
+On import, the module creates its working folders under `C:\Users\Public\GCCare`:
 
-```powershell
-$env:GCCARE_DATA_PATH = 'C:\Users\Public\GCCare'
-```
-
-If the folder does not exist yet, create it first:
-
-```powershell
-New-Item -ItemType Directory -Path 'C:\Users\Public\GCCare' -Force | Out-Null
-```
-
-### Optional Python setup
-
-If Python is not available on the machine, use:
-
-```powershell
-Install-GCPython
-```
+| Folder | Purpose |
+| --- | --- |
+| `C:\Users\Public\GCCare\FitFiles` | Generated FIT files and default upload folder |
+| `C:\Users\Public\GCCare\Logs` | Log file `GCCare.log` (with `-EnableLogging`) |
+| `C:\Users\Public\GCCare\Config` | Configuration file `GCCare.json` |
+| `C:\Users\Public\GCCare\Temp` | Temporary files |
+| `C:\Users\Public\GCCare\CleanUp` | Clean-up folder |
 
 ## Quick Start
 
-### Authenticate to Garmin Connect
+### Sign in to Garmin Connect
 
 ```powershell
-Connect-GC
+Get-GarminToken -Test
 ```
 
-### Start a session with explicit credentials
+`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\garmin_tokens.json`. All Garmin Connect commands use this file and renew the access token automatically. Sign in again only when the refresh token has expired.
+
+To use another token location, pass `-TokenStore` to the commands or set `$env:GARMINTOKENS`.
+
+### Show the Garmin Connect user
 
 ```powershell
-$cred = Get-Credential
-New-GarminConnectSession -Email $cred.UserName -SecurePassword $cred.Password
+Get-GarminUser
+```
+
+### Show earned badges and level
+
+```powershell
+Get-GarminBadges -GroupBy Year | Format-Table
 ```
 
 ### Convert Tanita measurements to FIT files
 
 ```powershell
-$fitFolder = 'C:\Users\Public\GCCare\Fit'
-Convert-TanitaExportToFitFile -csvFile 'C:\Users\Public\GCCare\bodydata.csv' -outputDirectory $fitFolder
+Convert-TanitaExportToFitFile -csvFile 'C:\Users\Public\GCCare\bodydata.csv' -LastX 7
 ```
+
+Add `-Upload` to upload the created FIT files to Garmin Connect right away.
 
 ### Calculate weekly averages from body data
 
@@ -133,7 +120,7 @@ Get-WeeklyBodyMetrics -CsvFile 'C:\Users\Public\GCCare\bodydata.csv'
 ### Upload FIT files to Garmin Connect
 
 ```powershell
-Send-FitFileToGarminConnect -ImportDirectory 'C:\Users\Public\GCCare\Fit'
+Send-FitFileToGarminConnect -ImportDirectory 'C:\Users\Public\GCCare\FitFiles'
 ```
 
 ### Inspect the latest Garmin activity
@@ -160,49 +147,67 @@ The module currently exports the following commands:
 
 | Command | Alias | Purpose |
 | --- | --- | --- |
-| `Convert-TanitaExportToFitFile` | None | Convert Tanita CSV exports to Garmin-compatible FIT files. |
-| `Get-GarminLastActivity` | None | Query the most recent data from the active Garmin Connect session. |
+| `Convert-TanitaExportToFitFile` | None | Convert Tanita CSV exports to Garmin-compatible weight FIT files and optionally upload them. |
+| `Get-GarminBadges` | None | Return earned Garmin Connect badges with points and level, optionally grouped by year, month or name. |
+| `Get-GarminLastActivity` | None | Return the most recent Garmin Connect activity. |
+| `Get-GarminToken` | None | Sign in to Garmin Connect and create or refresh the token store. |
+| `Get-GarminUser` | None | Return the Garmin Connect user profile and personal settings. |
 | `Get-WeeklyBodyMetrics` | None | Aggregate Tanita body-composition data by ISO week and return average values. |
-| `Install-GCPython` | None | Install Python when it is missing from the machine. |
 | `Invoke-TCXFileAnalysis` | None | Inspect a TCX file and return lap-by-lap distance, time, pace, elevation, and heart-rate metrics. |
-| `New-GarminConnectSession` | `Connect-GC` | Start or restore a Garmin Connect session using the bundled Python helper. |
-| `Send-FitFileToGarminConnect` | None | Upload local FIT files to Garmin Connect. |
+| `Send-FitFileToGarminConnect` | None | Upload local FIT files to Garmin Connect and report the status per file. |
 | `Update-TCXFile` | None | Recalculate and rewrite distance/elevation values in a TCX file. |
 
 Use `Get-Help` for detailed command documentation:
 
 ```powershell
-Get-Help New-GarminConnectSession -Full
+Get-Help Get-GarminToken -Full
+Get-Help Get-GarminUser -Full
+Get-Help Get-GarminBadges -Full
+Get-Help Get-GarminLastActivity -Full
 Get-Help Convert-TanitaExportToFitFile -Full
+Get-Help Send-FitFileToGarminConnect -Full
 Get-Help Get-WeeklyBodyMetrics -Full
 Get-Help Invoke-TCXFileAnalysis -Full
-Get-Help Send-FitFileToGarminConnect -Full
 Get-Help Update-TCXFile -Full
-Get-Help Get-GarminLastActivity -Full
 ```
+
+## Garmin Connect API
+
+All Garmin Connect commands use the internal helper `Invoke-GarminConnectApi`, which calls `https://connectapi.garmin.com` with the stored bearer token. More than 130 known endpoints - activities, sleep, HRV, weight, gear, workouts and more - are documented with PowerShell examples in [`Docs/GarminConnectApi.md`](Docs/GarminConnectApi.md).
+
+To use the helper directly, import the module with private functions exported:
+
+```powershell
+$env:GCCare_EXPORT_PRIVATE = 1
+Import-Module .\GCCare.psd1 -Force
+Invoke-GarminConnectApi -Path '/activitylist-service/activities/search/activities' -Query @{ start = 0; limit = 5 }
+```
+
+The Garmin Connect API is not official. Garmin may change endpoints or the sign-in flow at any time.
 
 ## Typical Workflows
 
 1. Import the module.
-2. Authenticate with Garmin Connect using `Connect-GC` or `New-GarminConnectSession`.
-3. Convert Tanita exports or inspect weekly averages from your CSV source files.
-4. Upload generated FIT files to Garmin Connect.
-5. Analyze or update TCX files when you need corrected lap distance or elevation values.
+2. Sign in once with `Get-GarminToken`.
+3. Convert Tanita exports with `Convert-TanitaExportToFitFile` or inspect weekly averages with `Get-WeeklyBodyMetrics`.
+4. Upload the generated FIT files with `Send-FitFileToGarminConnect` (or `Convert-TanitaExportToFitFile -Upload`).
+5. Check badges, user profile or the latest activity with `Get-GarminBadges`, `Get-GarminUser` and `Get-GarminLastActivity`.
+6. Analyze or update TCX files when you need corrected lap distance or elevation values.
 
 ## Logging and Output
 
-Most public functions use the module’s common output helpers and support optional logging switches where appropriate.
+Most public functions use the module's common output helpers and support optional logging switches where appropriate.
 
-- Use `-EnableLogging` when available to capture more detailed execution output.
-- Review generated FIT and TCX files in `C:\Users\Public\GCCare` or subfolders such as `Fit`.
+- Use `-EnableLogging` when available to write detailed execution output to `C:\Users\Public\GCCare\Logs\GCCare.log`.
+- Review generated FIT files in `C:\Users\Public\GCCare\FitFiles`.
 - Keep a clean backup of your source CSV, FIT, or TCX files before processing them.
 
 ## Recommended Safety Practices
 
 - Use your own Garmin account and valid test data.
+- Keep the token file `garmin_tokens.json` private and never commit it to a repository - it grants access to your Garmin account.
 - Keep backups of source files before conversion or update operations.
-- Validate the output of the Python helpers before uploading anything important.
-- Prefer a dedicated test machine or VM when experimenting with new workflows.
+- Test a conversion with `-LastX 1` before uploading many files to Garmin Connect.
 - Store all generated data in `C:\Users\Public\GCCare` to keep the working directory consistent and easy to back up.
 
 ## Contributing
@@ -217,4 +222,4 @@ If you contribute changes, please include:
 
 ## Acknowledgments
 
-Thanks to the Garmin Connect and FIT tooling ecosystem, and to the open-source projects that make these workflows easier to automate from PowerShell.
+Thanks to the Garmin Connect and FIT tooling ecosystem, and to the open-source projects that document the Garmin Connect API and the FIT protocol.
