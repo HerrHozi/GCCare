@@ -18,6 +18,8 @@ function Test-GCCarePipPackageInstalled {
         Invoke-Output -Type Missing -Message "Package '$PackageName' is not installed. Please install it using 'pip install $PackageName'." -NoExtraLines
     }
     else {
-        Invoke-Output -Type Success -Message "Package '$PackageName' is installed." -NoExtraLines
+        $output = & $PythonCommand -m pip show $PackageName 2>&1
+        $version = ($output -match '^Version:') -replace '^Version:\s*'
+        Invoke-Output -Type Success -Message "Package '$PackageName' is installed. | Version: $version" -NoExtraLines
     }
 }

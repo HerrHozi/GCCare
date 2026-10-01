@@ -1,0 +1,16 @@
+{
+  "Module": {
+    "Name": "GCCare",
+    "Version": "2026.10.1.1101",
+    "LastUpdated": "2026-10-01",
+    "Purpose": "Content to be defined",
+    "Description": "TBD"
+  },
+  "DefaultParameter": {
+    "User": "GCCare",
+    "LastUse": "2026.9.30.1089",
+    "LastUpdated": "2026-09-30",
+    "Purpose": "Content to be defined",
+    "Description": "TBD"
+  }
+}
