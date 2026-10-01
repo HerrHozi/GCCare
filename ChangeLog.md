@@ -2,11 +2,11 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.10.1.1358
+Current Version: 2026.10.1.1419
 Last Update:     2026-10-01
 ```
 
-- Version 2026.10.1.1358
+- Version 2026.10.1.1419
   - Remove unused Functions
   - Update Help Context
 
