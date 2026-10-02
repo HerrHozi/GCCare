@@ -214,7 +214,7 @@ Write-Host "'GCCare'`n`n" -ForegroundColor DarkCyan
 Write-Host "  [>] Quick-Start: " -NoNewline -ForegroundColor Gray 
 
 Write-HighlightedCode  -code "Get-GarminToken"
-Write-HighlightedCode  -code "                   Get-GarminUser | Format-Table"
+Write-HighlightedCode  -code "                   Get-GarminUser -Quiet | Format-Table"
 Write-HighlightedCode  -code "                   Convert-TanitaExportToFitFile -LastX 7 -Upload"
 Write-HighlightedCode  -code "                   Send-FitFileToGarminConnect"
 Write-HighlightedCode  -code "                   Get-WeeklyBodyMetrics"

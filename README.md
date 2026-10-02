@@ -95,7 +95,7 @@ To use another token location, pass `-TokenStore` to the commands or set `$env:G
 ### Show the Garmin Connect user
 
 ```powershell
-Get-GarminUser
+Get-GarminUser -Quiet | Format-Table
 ```
 
 ### Show earned badges and level
