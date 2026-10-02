@@ -107,7 +107,7 @@ Get-GarminBadges -GroupBy Year | Format-Table
 ### Convert Tanita measurements to FIT files
 
 ```powershell
-Convert-TanitaExportToFitFile -csvFile "$env:USERPROFILE\GCCare\bodydata.csv" -LastX 7
+Convert-TanitaExportToFitFile -csvFile "$env:USERPROFILE\GCCare\Examples\example_scale_measurements.csv" -LastX 7
 ```
 
 Add `-Upload` to upload the created FIT files to Garmin Connect right away.
