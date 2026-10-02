@@ -9,8 +9,8 @@
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.10.1.1419
-Last Update:     2026-10-01
+Current Version: 2026.10.2.714
+Last Update:     2026-10-02
 ```
 
 GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It signs in to Garmin Connect, talks to the Garmin Connect API, creates and uploads FIT files, converts body-data CSV exports, calculates weekly averages, reads badges, user profile and the latest activity, and analyzes or adjusts TCX files - without any external runtime.
@@ -29,12 +29,12 @@ GCCare currently provides the following capabilities:
 - Sign in to Garmin Connect (including MFA) and keep the access token fresh automatically.
 - Read the Garmin Connect user profile, earned badges with level summary, and the latest activity.
 - Convert Tanita CSV exports into Garmin-compatible weight FIT files.
-- Upload FIT files to Garmin Connect from a shared public workspace folder.
+- Upload FIT files to Garmin Connect from your personal workspace folder.
 - Calculate weekly averages from body-composition data.
 - Analyze TCX lap metrics such as distance, time, moving time, ascent, descent, pace, and heart rate.
 - Update TCX files with recalculated lap distance and elevation values.
 
-By default, GCCare stores generated data and intermediate files under `C:\Users\Public\GCCare`.
+By default, GCCare stores generated data and intermediate files under `$env:USERPROFILE\GCCare`.
 
 ## Module Structure
 
@@ -42,8 +42,8 @@ By default, GCCare stores generated data and intermediate files under `C:\Users\
 - `Private/`: internal PowerShell helper functions, including the Garmin Connect API client (`GarminConnectApi.ps1`) and the FIT encoder (`New-GarminWeightFitFile.ps1`)
 - `Docs/`: additional documentation, e.g. the Garmin Connect API reference (`GarminConnectApi.md`)
 - `Examples/`: sample FIT, TCX, and CSV files
-- `C:\Users\Public\GCCare`: default shared workspace for generated FIT files, logs, and configuration
-- `~\.garminconnect\garmin_tokens.json`: default Garmin Connect token store
+- `$env:USERPROFILE\GCCare`: default per-user workspace for generated FIT files, logs, and configuration
+- `~\.garminconnect\gctoken.json`: default Garmin Connect token store
 
 ## Requirements
 
@@ -69,15 +69,16 @@ Import-Module GCCare -Force
 
 ### Default folders
 
-On import, the module creates its working folders under `C:\Users\Public\GCCare`:
+On import, the module creates its working folders under `$env:USERPROFILE\GCCare`:
 
 | Folder | Purpose |
 | --- | --- |
-| `C:\Users\Public\GCCare\FitFiles` | Generated FIT files and default upload folder |
-| `C:\Users\Public\GCCare\Logs` | Log file `GCCare.log` (with `-EnableLogging`) |
-| `C:\Users\Public\GCCare\Config` | Configuration file `GCCare.json` |
-| `C:\Users\Public\GCCare\Temp` | Temporary files |
-| `C:\Users\Public\GCCare\CleanUp` | Clean-up folder |
+| `$env:USERPROFILE\GCCare\FitFiles` | Generated FIT files and default upload folder |
+| `$env:USERPROFILE\GCCare\FitFiles\Uploaded` | FIT files that were uploaded to Garmin Connect |
+| `$env:USERPROFILE\GCCare\Logs` | Log file `GCCare.log` (with `-EnableLogging`) |
+| `$env:USERPROFILE\GCCare\Config` | Configuration file `GCCare.json` |
+| `$env:USERPROFILE\GCCare\Temp` | Temporary files |
+| `$env:USERPROFILE\GCCare\CleanUp` | Clean-up folder |
 
 ## Quick Start
 
@@ -87,7 +88,7 @@ On import, the module creates its working folders under `C:\Users\Public\GCCare`
 Get-GarminToken -Test
 ```
 
-`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\garmin_tokens.json`. All Garmin Connect commands use this file and renew the access token automatically. Sign in again only when the refresh token has expired.
+`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\gctoken.json`. All Garmin Connect commands use this file and renew the access token automatically. If no token file exists yet, any Garmin Connect command starts this sign-in by itself - so calling `Get-GarminToken` first is optional.
 
 To use another token location, pass `-TokenStore` to the commands or set `$env:GARMINTOKENS`.
 
@@ -106,22 +107,36 @@ Get-GarminBadges -GroupBy Year | Format-Table
 ### Convert Tanita measurements to FIT files
 
 ```powershell
-Convert-TanitaExportToFitFile -csvFile 'C:\Users\Public\GCCare\bodydata.csv' -LastX 7
+Convert-TanitaExportToFitFile -csvFile "$env:USERPROFILE\GCCare\bodydata.csv" -LastX 7
 ```
 
 Add `-Upload` to upload the created FIT files to Garmin Connect right away.
 
+The CSV column names are read from the section `MeasurementHeaders` in `$env:USERPROFILE\GCCare\Config\GCCare.json`. Change the values to match your export, e.g. for a German system:
+
+```json
+"MeasurementHeaders": {
+  "Date": "Datum",
+  "Weight (kg)": "Gewicht",
+  "Body Fat (%)": "Fettanteil"
+}
+```
+
+Keys that are not listed keep the default Tanita column name. Comma or semicolon as delimiter, decimal commas and dates like `02.10.2026 06:47` are detected automatically. For a single call, use `-HeaderMapping @{ 'Date' = 'Datum' }`.
+
 ### Calculate weekly averages from body data
 
 ```powershell
-Get-WeeklyBodyMetrics -CsvFile 'C:\Users\Public\GCCare\bodydata.csv'
+Get-WeeklyBodyMetrics -CsvFile "$env:USERPROFILE\GCCare\bodydata.csv"
 ```
 
 ### Upload FIT files to Garmin Connect
 
 ```powershell
-Send-FitFileToGarminConnect -ImportDirectory 'C:\Users\Public\GCCare\FitFiles'
+Send-FitFileToGarminConnect -ImportDirectory "$env:USERPROFILE\GCCare\FitFiles"
 ```
+
+Uploaded files (and files Garmin Connect already knows) are moved to `FitFiles\Uploaded`, so the next run only uploads new files. Failed uploads stay in place and are retried. Use `-KeepFiles` to leave all files where they are, or `-Path` to upload single files.
 
 ### Inspect the latest Garmin activity
 
@@ -132,13 +147,13 @@ Get-GarminLastActivity
 ### Analyze a TCX file
 
 ```powershell
-Invoke-TCXFileAnalysis -tcxFile 'C:\Users\Public\GCCare\activity.tcx'
+Invoke-TCXFileAnalysis -tcxFile "$env:USERPROFILE\GCCare\activity.tcx"
 ```
 
 ### Update a TCX file
 
 ```powershell
-Update-TCXFile -tcxFile 'C:\Users\Public\GCCare\activity.tcx'
+Update-TCXFile -tcxFile "$env:USERPROFILE\GCCare\activity.tcx"
 ```
 
 ## Public Commands
@@ -154,7 +169,7 @@ The module currently exports the following commands:
 | `Get-GarminUser` | None | Return the Garmin Connect user profile and personal settings. |
 | `Get-WeeklyBodyMetrics` | None | Aggregate Tanita body-composition data by ISO week and return average values. |
 | `Invoke-TCXFileAnalysis` | None | Inspect a TCX file and return lap-by-lap distance, time, pace, elevation, and heart-rate metrics. |
-| `Send-FitFileToGarminConnect` | None | Upload local FIT files to Garmin Connect and report the status per file. |
+| `Send-FitFileToGarminConnect` | None | Upload local FIT files to Garmin Connect, report the status per file and move uploaded files to `Uploaded`. |
 | `Update-TCXFile` | None | Recalculate and rewrite distance/elevation values in a TCX file. |
 
 Use `Get-Help` for detailed command documentation:
@@ -198,17 +213,17 @@ The Garmin Connect API is not official. Garmin may change endpoints or the sign-
 
 Most public functions use the module's common output helpers and support optional logging switches where appropriate.
 
-- Use `-EnableLogging` when available to write detailed execution output to `C:\Users\Public\GCCare\Logs\GCCare.log`.
-- Review generated FIT files in `C:\Users\Public\GCCare\FitFiles`.
+- Use `-EnableLogging` when available to write detailed execution output to `$env:USERPROFILE\GCCare\Logs\GCCare.log`.
+- Review generated FIT files in `$env:USERPROFILE\GCCare\FitFiles`.
 - Keep a clean backup of your source CSV, FIT, or TCX files before processing them.
 
 ## Recommended Safety Practices
 
 - Use your own Garmin account and valid test data.
-- Keep the token file `garmin_tokens.json` private and never commit it to a repository - it grants access to your Garmin account.
+- Keep the token file `gctoken.json` private and never commit it to a repository - it grants access to your Garmin account.
 - Keep backups of source files before conversion or update operations.
 - Test a conversion with `-LastX 1` before uploading many files to Garmin Connect.
-- Store all generated data in `C:\Users\Public\GCCare` to keep the working directory consistent and easy to back up.
+- Store all generated data in `$env:USERPROFILE\GCCare` to keep the working directory consistent and easy to back up.
 
 ## Contributing
 

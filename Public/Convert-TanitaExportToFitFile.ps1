@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Converts Tanita body measurement CSV data into Garmin-compatible FIT files.
+Converts Tanita (RD-545) body measurement CSV data into Garmin-compatible FIT files.
 
 .DESCRIPTION
 Convert-TanitaExportToFitFile validates a Tanita CSV export, resolves the output directory,
@@ -10,9 +10,34 @@ Each file contains a file_id and a weight_scale message.
 If no CSV file is provided, the function opens a file picker so that an input file
 can be selected interactively. Measurements with missing values ('-') are skipped.
 
+Column names:
+The CSV column for each value is taken from the section "MeasurementHeaders" in the user
+configuration $env:USERPROFILE\GCCare\Config\GCCare.json. The key is fixed, the value is the
+column name in your CSV file, so exports with other column names - e.g. from German
+systems - can be used without changes:
+
+    "MeasurementHeaders": {
+        "Date": "Datum",
+        "Weight (kg)": "Gewicht (kg)",
+        "Body Fat (%)": "Fettanteil (%)",
+        ...
+    }
+
+Keys: Date, Weight (kg), Body Fat (%), Body Water (%), Muscle Mass (kg), Metab Age,
+Visc Fat, Physique Rating, BMR (kcal), BMI. Keys that are missing in GCCare.json keep the
+default Tanita column name (identical to the key). -HeaderMapping overrides single
+columns for one call. The BMI column is optional; without it the BMI is calculated from
+-HeightCm.
+
+CSV format:
+- Delimiter ',' or ';' (detected automatically from the header line).
+- Decimal separator '.' or ','.
+- Date formats yyyy-MM-dd HH:mm[:ss], dd.MM.yyyy HH:mm[:ss], yyyy/MM/dd HH:mm:ss,
+  dd/MM/yyyy HH:mm:ss or any format of the current culture.
+
 Written weight_scale values: weight, percent fat, percent hydration, bone mass (filled with
 the body fat mass in kg), muscle mass, BMI, visceral fat rating, metabolic age,
-physique rating, basal/active metabolic rate (2000 kcal) and user profile index 0.
+physique rating, basal/active metabolic rate and user profile index 0.
 
 .PARAMETER csvFile
 Path to the Tanita CSV input file. Only .csv files are accepted. If omitted, the
@@ -20,27 +45,36 @@ function prompts for a file by using a Windows file selection dialog.
 
 .PARAMETER outputDirectory
 Directory where the generated FIT files will be written. If the directory does not
-exist, it is created automatically. The default is C:\Users\Public\GCCare\FitFiles.
+exist, it is created automatically. The default is $env:USERPROFILE\GCCare\FitFiles.
 
 .PARAMETER HeightCm
-Body height in centimeters, used to calculate the BMI when the CSV has no BMI value.
-Must be greater than zero. The default value is 178.0.
+Body height in centimeters, used to calculate the BMI when the CSV has no BMI column or
+no BMI value. Must be greater than zero. The default value is 178.0.
 
 .PARAMETER LastX
 Limits the conversion to the most recent number of measurements in the CSV file.
 If omitted, the function asks for the number of entries.
 
 .PARAMETER Upload
-Uploads the created FIT files directly to Garmin Connect (requires a token created by
+Uploads the created FIT files directly to Garmin Connect with Send-FitFileToGarminConnect and
+moves them to the subfolder Uploaded of the output directory (requires a token created by
 Get-GarminToken).
 
+.PARAMETER HeaderMapping
+Optional hashtable that overrides CSV column names for this call only, e.g.
+@{ 'Date' = 'Datum'; 'Weight (kg)' = 'Gewicht' }. Takes precedence over "MeasurementHeaders"
+in GCCare.json. Only the keys listed in the description are allowed.
+
 .PARAMETER TokenStore
-Optional path to the Garmin token store directory or garmin_tokens.json file (used with -Upload).
+Optional path to the Garmin token store directory or gctoken.json file (used with -Upload).
+
+.PARAMETER EnableLogging
+Optional switch to enable module logging behavior (if supported by module logging helpers).
 
 .EXAMPLE
 PS> Convert-TanitaExportToFitFile -csvFile 'C:\Data\Tanita\bodydata.csv' -LastX 7
 
-Converts the latest seven measurements and writes the FIT files to C:\Users\Public\GCCare\FitFiles.
+Converts the latest seven measurements and writes the FIT files to $env:USERPROFILE\GCCare\FitFiles.
 
 .EXAMPLE
 PS> Convert-TanitaExportToFitFile -csvFile 'C:\Data\Tanita\bodydata.csv' -outputDirectory 'C:\Data\Tanita\Fit' -HeightCm 180 -LastX 7
@@ -51,11 +85,20 @@ and writes the resulting FIT files to the specified output directory.
 .EXAMPLE
 PS> Convert-TanitaExportToFitFile -csvFile 'C:\Data\Tanita\bodydata.csv' -LastX 1 -Upload
 
-Converts the latest measurement and uploads it to Garmin Connect.
+Converts the latest measurement, uploads it to Garmin Connect and moves the FIT file to
+$env:USERPROFILE\GCCare\FitFiles\Uploaded.
+
+.EXAMPLE
+PS> Convert-TanitaExportToFitFile -csvFile 'C:\Data\Tanita\messwerte.csv' -LastX 7 -HeaderMapping @{ 'Date' = 'Datum'; 'Weight (kg)' = 'Gewicht (kg)' }
+
+Converts a German export whose date and weight columns have different names; all other
+columns are taken from "MeasurementHeaders" in GCCare.json.
 
 .NOTES
-Requires the private helpers New-GarminWeightFitFile (FIT encoder) and, for -Upload,
-Invoke-GarminConnectApi.
+Requires the private helpers New-GarminWeightFitFile (FIT encoder) and
+Get-GCCareMeasurementHeaders (column mapping) and, for -Upload, Send-FitFileToGarminConnect.
+Existing user configurations created before "MeasurementHeaders" was added keep working with
+the default column names; copy the section from the module's GCCare.json to customize them.
 
 .LINK
 https://developer.garmin.com/fit/protocol/
@@ -72,6 +115,7 @@ Function Convert-TanitaExportToFitFile {
         [double]$HeightCm = 178.0,
         [int]$LastX,
         [switch]$Upload,
+        [hashtable]$HeaderMapping,
         [string]$TokenStore,
         [switch]$EnableLogging
     )
@@ -145,41 +189,66 @@ Function Convert-TanitaExportToFitFile {
 
     $invariant = [System.Globalization.CultureInfo]::InvariantCulture
     $heightM = $HeightCm / 100.0
-    $requiredColumns = 'Date', 'Weight (kg)', 'Body Fat (%)', 'Body Water (%)', 'Muscle Mass (kg)', 'Metab Age', 'Visc Fat', 'Physique Rating'
 
-    $rows = @(Import-Csv -LiteralPath $csvFile -Encoding UTF8)
+    # Column names: defaults < GCCare.json "MeasurementHeaders" < -HeaderMapping
+    $headers = Get-GCCareMeasurementHeaders -Mapping $HeaderMapping
+
+    # Delimiter: ',' (English export) or ';' (e.g. German Excel/export), detected from the header line
+    $headerLine = Get-Content -LiteralPath $csvFile -TotalCount 1 -Encoding UTF8
+    $delimiter = if (([regex]::Matches($headerLine, ';')).Count -gt ([regex]::Matches($headerLine, ',')).Count) { ';' } else { ',' }
+    Write-Log -Message "    >> CSV delimiter: '$delimiter'"
+
+    $rows = @(Import-Csv -LiteralPath $csvFile -Delimiter $delimiter -Encoding UTF8)
     if ($rows.Count -eq 0) {
         Invoke-Output -Type Missing -Message "CSV file contains no measurements: " -TextMaker "$csvFile"
         return
     }
 
-    $missingColumns = $requiredColumns | Where-Object { $_ -notin $rows[0].PSObject.Properties.Name }
+    $csvColumns = $rows[0].PSObject.Properties.Name
+    # BMI is optional: when the column or a value is missing, it is calculated from -HeightCm
+    $missingColumns = $headers.Keys | Where-Object { $_ -ne 'BMI' -and $headers[$_] -notin $csvColumns }
     if ($missingColumns) {
-        throw "CSV file is missing required columns: $($missingColumns -join ', ')"
+        $details = ($missingColumns | ForEach-Object { "'$($headers[$_])' ($_)" }) -join ', '
+        throw ("CSV file is missing required columns: $details.`n" +
+            "Adjust 'MeasurementHeaders' in $Script:ConfigFile or use -HeaderMapping. Columns in the CSV file: $($csvColumns -join ', ')")
     }
+
+    # Numbers with '.' or ',' as decimal separator; '-' or empty means not measured
+    function ConvertTo-MeasurementNumber([string]$Text) {
+        $number = 0.0
+        if ([double]::TryParse($Text.Trim().Replace(',', '.'), [System.Globalization.NumberStyles]::Float, $invariant, [ref]$number)) {
+            return $number
+        }
+        return $null
+    }
+
+    $dateFormats = [string[]]('yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd HH:mm', 'dd.MM.yyyy HH:mm:ss', 'dd.MM.yyyy HH:mm', 'yyyy/MM/dd HH:mm:ss', 'dd/MM/yyyy HH:mm:ss')
 
     $createdFiles = @()
     foreach ($row in ($rows | Select-Object -Last $LastX)) {
-        # Tanita exports '-' for values that were not measured
+        $dateText = [string]$row.($headers['Date'])
+
         $values = @{}
-        foreach ($column in $requiredColumns | Where-Object { $_ -ne 'Date' }) {
-            $number = 0.0
-            if (-not [double]::TryParse($row.$column, [System.Globalization.NumberStyles]::Float, $invariant, [ref]$number)) {
-                $number = $null
-            }
-            $values[$column] = $number
+        foreach ($key in $headers.Keys | Where-Object { $_ -notin 'Date', 'BMI' }) {
+            $values[$key] = ConvertTo-MeasurementNumber $row.($headers[$key])
         }
         if ($values.Values -contains $null) {
-            Invoke-Output -Type Missing -Message "Skipped incomplete measurement: " -TextMaker "$($row.Date)" -NoExtraLines
+            Invoke-Output -Type Missing -Message "Skipped incomplete measurement: " -TextMaker $dateText -NoExtraLines
             continue
         }
 
-        $timestamp = [datetime]::ParseExact($row.Date, 'yyyy-MM-dd HH:mm:ss', $invariant)
+        $timestamp = [datetime]::MinValue
+        if (-not [datetime]::TryParseExact($dateText.Trim(), $dateFormats, $invariant, [System.Globalization.DateTimeStyles]::None, [ref]$timestamp) -and
+            -not [datetime]::TryParse($dateText, [ref]$timestamp)) {
+            Invoke-Output -Type Missing -Message "Skipped measurement with unknown date format: " -TextMaker $dateText -NoExtraLines
+            continue
+        }
+
         $weight = $values['Weight (kg)']
         $fatPercent = $values['Body Fat (%)']
 
-        $bmi = 0.0
-        if (-not [double]::TryParse($row.BMI, [System.Globalization.NumberStyles]::Float, $invariant, [ref]$bmi)) {
+        $bmi = if ($headers['BMI'] -in $csvColumns) { ConvertTo-MeasurementNumber $row.($headers['BMI']) } else { $null }
+        if (-not $bmi) {
             $bmi = [math]::Round($weight / ($heightM * $heightM), 2)
         }
 
@@ -196,30 +265,21 @@ Function Convert-TanitaExportToFitFile {
             VisceralFatRating = [int][math]::Truncate($values['Visc Fat'])
             MetabolicAge      = [int][math]::Truncate($values['Metab Age'])
             PhysiqueRating    = [int][math]::Truncate($values['Physique Rating'])
-            BasalMet          = 2000
+            BasalMet          = $values['BMR (kcal)']
             ActiveMet         = 2000
         }
 
         $fitFile = New-GarminWeightFitFile @fitParams
         $createdFiles += $fitFile
         Invoke-Output -Type Bullet -Message "FIT file created:" -TextMaker $fitFile.Name -NoExtraLines
-        Write-Log -Message "    >> FIT file created: $($fitFile.FullName)"
-    }
-
-    if ($Upload -and $createdFiles.Count -gt 0) {
-        Write-Host
-        foreach ($fitFile in $createdFiles) {
-            try {
-                $null = Invoke-GarminConnectApi -Path '/upload-service/upload' -Method Post -Form @{ file = $fitFile } -TokenStore $TokenStore
-                Invoke-Output -Type Bullet -Message "Uploaded:        " -TextMaker $fitFile.Name -NoExtraLines
-            }
-            catch {
-                Invoke-Output -Type Missing -Message "Upload failed:   " -TextMaker "$($fitFile.Name) - $($_.Exception.Message)" -NoExtraLines
-            }
-        }
     }
 
     Invoke-Output -Type Success -Message "Conversion completed successfully ($($createdFiles.Count) files). `n       FIT files are located in: $outputDirectory"
+
+    # Upload only the files created in this run; uploaded files are moved to <outputDirectory>\Uploaded
+    if ($Upload -and $createdFiles.Count -gt 0) {
+        $null = Send-FitFileToGarminConnect -Path $createdFiles.FullName -TokenStore $TokenStore
+    }
     ######################## main code ############################
     $runtime = Get-RunTime -StartRunTime $StartRunTime
     Write-Log -Message "    Run Time: $runtime [h] ###"

@@ -53,7 +53,7 @@ function ConvertFrom-GarminJwtPayload {
 }
 
 function Resolve-GarminTokenFile {
-    # A directory (default ~/.garminconnect) means <dir>\garmin_tokens.json
+    # A directory (default ~/.garminconnect) means <dir>\gctoken.json
     param(
         [string]$TokenStore
     )
@@ -65,9 +65,10 @@ function Resolve-GarminTokenFile {
         $TokenStore = Join-Path -Path $HOME -ChildPath '.garminconnect'
     }
 
-    $path = [System.IO.Path]::GetFullPath($TokenStore.Replace('~', $HOME))
+    # Expand only a leading ~ (8.3 short names like C:\Users\HOLGER~1 contain ~ as well)
+    $path = [System.IO.Path]::GetFullPath(($TokenStore -replace '^~(?=$|[\\/])', $HOME))
     if ((Test-Path -LiteralPath $path -PathType Container) -or [System.IO.Path]::GetExtension($path) -ne '.json') {
-        return Join-Path -Path $path -ChildPath 'garmin_tokens.json'
+        return Join-Path -Path $path -ChildPath 'gctoken.json'
     }
     return $path
 }
@@ -79,13 +80,21 @@ function Get-GarminAccessToken {
     )
 
     $tokenFile = Resolve-GarminTokenFile -TokenStore $TokenStore
-    if (-not (Test-Path -LiteralPath $tokenFile -PathType Leaf)) {
-        throw "No Garmin token file found at '$tokenFile'. Sign in first with Get-GarminToken."
+
+    $store = $null
+    if (Test-Path -LiteralPath $tokenFile -PathType Leaf) {
+        $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
     }
 
-    $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
-    if (-not $store.di_token) {
-        throw "The token file '$tokenFile' contains no DI token. Sign in again with Get-GarminToken."
+    # No (usable) token yet: sign in interactively and continue with the new token
+    if (-not $store -or -not $store.di_token) {
+        Write-Log -Message "    >> No Garmin token in $tokenFile, starting sign-in"
+        Invoke-Output -Type Info -Message "No Garmin Connect token found ($tokenFile) - starting sign-in..." -NoExtraLines
+        $null = Get-GarminToken -TokenFile $tokenFile
+        if (-not (Test-Path -LiteralPath $tokenFile -PathType Leaf)) {
+            throw "Garmin Connect sign-in did not create a token file at '$tokenFile'."
+        }
+        $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
     }
 
     $payload = ConvertFrom-GarminJwtPayload -Token $store.di_token

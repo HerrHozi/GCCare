@@ -2,9 +2,12 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.10.1.1419
-Last Update:     2026-10-01
+Current Version: 2026.10.2.714
+Last Update:     2026-10-02
 ```
+
+- Version 2026.10.2.714
+  - Replaced all Python Functions by PowerShell
 
 - Version 2026.10.1.1419
   - Remove unused Functions

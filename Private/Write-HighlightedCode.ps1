@@ -78,16 +78,3 @@ function Write-HighlightedCode {
     }
 
 }
-
-
-#$code = "Get-PSModuleQuantity -ModuleName .\PSModuleQuantityAnalyzer.psd1 | Where-Object {`$_.Type -eq 'Private' -and `$_.References -eq 0} | ft"
-#$code = "MATCH (n:Base {highvalue:False})-[r]->(m {highvalue:True}) WHERE NOT type(r) IN ['WriteOwnerRaw','OwnsRaw', 'LocalToComputer']"
-#$code = "Get-ADUser -SearchBase 'Ldap:\\dsdadf' -Filter 'homePhone -like 1000' -Properties a,b | Select-Object name,asss | Sort-Object samaccountname  | Format-Table | Out-Host"
-
-#$code = "Get-ADGroupMember -Identity 'Domain Admins' -Recursive | Select-Object -First 10 | Format-Table"
-#
-#Write-Syntax -Code $code
-
-#$code = "MATCH (s:Base {highvalue:True}) SET s.highvalue = false REMOVE s:Tag_Tier_Zero, s.hvtreason, s.system_tags, s.MemberofTier0Group RETURN s.name"
-#Write-Syntax -Code $code
-

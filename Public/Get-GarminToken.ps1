@@ -10,10 +10,11 @@ sign-in flow as the Garmin Connect mobile app:
   2. Exchanges the service ticket at diauth.garmin.com for a DI access token and refresh token.
   3. With -Refresh: renews the access token with the stored refresh token - no password needed.
 
-The tokens are saved to `garmin_tokens.json`. All GCCare functions that talk to Garmin Connect
+The tokens are saved to `gctoken.json`. All GCCare functions that talk to Garmin Connect
 (`Get-GarminBadges`, `Get-GarminLastActivity`, `Get-GarminUser`, `Send-FitFileToGarminConnect`,
 `Convert-TanitaExportToFitFile -Upload`) read this file and refresh the access token
-automatically, so a sign-in is only needed again when the refresh token has expired.
+automatically. If no token file exists yet, these functions call `Get-GarminToken`
+themselves, so an explicit sign-in is optional.
 
 Returns an object with these properties:
 - AccessToken: DI bearer token for the `Authorization: Bearer` header.
@@ -23,8 +24,9 @@ Returns an object with these properties:
 Note: This is not an official Garmin API. Garmin may change the sign-in flow at any time.
 
 .PARAMETER TokenFile
-Path of the token file. The default is `~\.garminconnect\garmin_tokens.json`, the default
-location used by all GCCare functions.
+Path of the token file or its directory (a directory means `<directory>\gctoken.json`).
+Defaults to `$env:GARMINTOKENS`, then `~\.garminconnect\gctoken.json` - the same location
+used by all GCCare functions.
 
 .PARAMETER Refresh
 Skips the sign-in and renews the access token with the refresh token stored in the token file.
@@ -64,7 +66,7 @@ Function Get-GarminToken {
     [CmdletBinding()]
     param(
         # Token file (default location used by all GCCare functions)
-        [string]$TokenFile = (Join-Path $HOME '.garminconnect\garmin_tokens.json'),
+        [string]$TokenFile,
 
         # Skip sign-in: renew the access token with the stored refresh token
         [switch]$Refresh,
@@ -75,6 +77,9 @@ Function Get-GarminToken {
 
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version Latest
+
+    # Same token location as all other GCCare functions ($env:GARMINTOKENS, then ~\.garminconnect\gctoken.json)
+    $TokenFile = Resolve-GarminTokenFile -TokenStore $TokenFile
 
     $SsoBase = 'https://sso.garmin.com'
     $IosClientId = 'GCM_IOS_DARK'

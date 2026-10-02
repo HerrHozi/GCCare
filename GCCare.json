@@ -1,8 +1,8 @@
 {
   "Module": {
     "Name": "GCCare",
-    "Version": "2026.10.1.1419",
-    "LastUpdated": "2026-10-01",
+    "Version": "2026.10.2.714",
+    "LastUpdated": "2026-10-02",
     "Purpose": "Content to be defined",
     "Description": "TBD"
   },
@@ -12,5 +12,19 @@
     "LastUpdated": "2026-09-30",
     "Purpose": "Content to be defined",
     "Description": "TBD"
+  },
+  "MeasurementHeaders": {
+    "Date": "Date",
+    "Weight (kg)": "Weight (kg)",
+    "Body Fat (%)": "Body Fat (%)",
+    "Body Water (%)": "Body Water (%)",
+    "Muscle Mass (kg)": "Muscle Mass (kg)",
+    "Metab Age": "Metab Age",
+    "Visc Fat": "Visc Fat",
+    "Physique Rating": "Physique Rating",
+    "BMR (kcal)": "BMR (kcal)",
+    "BMI": "BMI"
   }
 }
+
+

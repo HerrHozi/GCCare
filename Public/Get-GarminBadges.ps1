@@ -5,7 +5,7 @@ Fetches the earned Garmin Connect badges and summarizes them by year, month or n
 .DESCRIPTION
 `Get-GarminBadges` calls the Garmin Connect API endpoint `/badge-service/badge/earned`
 directly from PowerShell. Authentication uses the DI OAuth2 token
-store written by `Get-GarminToken` (`garmin_tokens.json`). An access
+store written by `Get-GarminToken` (`gctoken.json`). An access
 token that expires within 15 minutes is refreshed automatically and saved back.
 
 Before returning, the function writes a console summary: total number of badges,
@@ -30,7 +30,7 @@ standard cmdlets such as `Where-Object`, `Sort-Object`, and `Format-Table`.
 Note that `Year` and `Month` are strings.
 
 .PARAMETER TokenStore
-Optional path to the Garmin Connect token store directory or `garmin_tokens.json` file.
+Optional path to the Garmin Connect token store directory or `gctoken.json` file.
 Defaults to `$env:GARMINTOKENS`, then `~\.garminconnect`.
 
 .PARAMETER EnableLogging
