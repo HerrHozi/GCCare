@@ -5,7 +5,7 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-7.1%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Maintenance](https://img.shields.io/badge/status-active-brightgreen)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/HerrHozi/GCCare)
+[![Ask DeepWiki](https://raw.githubusercontent.com/HerrHozi/GCCare/main/.github/assets/badge-deepwiki.svg)](https://deepwiki.com/HerrHozi/GCCare)
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
