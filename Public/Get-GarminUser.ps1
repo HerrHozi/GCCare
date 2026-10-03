@@ -6,7 +6,7 @@ Fetches the Garmin Connect user profile and personal settings.
 `Get-GarminUser` calls the Garmin Connect API endpoints
 `/userprofile-service/socialProfile` and `/userprofile-service/userprofile/user-settings`
 directly from PowerShell. Authentication uses the DI OAuth2 token store
-written by `Get-GarminToken` (`garmin_tokens.json`). An access token that
+written by `Get-GarminToken` (`gctoken.json`). An access token that
 expires within 15 minutes is refreshed automatically and saved back.
 
 Returns a summary object with these properties:
@@ -31,7 +31,7 @@ Returns a summary object with these properties:
 Properties that Garmin does not return for an account are `$null`.
 
 .PARAMETER TokenStore
-Optional path to the Garmin Connect token store directory or `garmin_tokens.json` file.
+Optional path to the Garmin Connect token store directory or `gctoken.json` file.
 Defaults to `$env:GARMINTOKENS`, then `~\.garminconnect`.
 
 .PARAMETER Raw

@@ -2,9 +2,28 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.10.1.1419
-Last Update:     2026-10-01
+Current Version: 2026.10.3.686
+Last Update:     2026-10-03
 ```
+
+- Version 2026.10.3.686
+  - Renamed Get-GarminBadges to Get-GarminBadge (alias Get-GarminBadges)
+  - Added -Type Earned | Available | NonCompleted to Get-GarminBadge
+  - Added -CustomSelection, -Filter, -Property and -SaveCustomSelection (GCCare.json > GarminConnectApi > CustomSelection > Badge)
+  - -GroupBy Year | Month also for Available and NonCompleted
+  - Added Function Get-GarminActivity (default: last 10 runs, -Miles, -GroupBy Year | Month | Week | ActivityType,
+    custom selection per activity type in GCCare.json > GarminConnectApi > CustomSelection > Activity)
+  - Added private functions Get-GarminEarnedBadgeList, Get-GarminAvailableBadgeList, Get-GarminNonCompletedBadgeList,
+    Get-GarminActivityList, Get-GCCareCustomSelection and Save-GCCareCustomSelection
+  - Added Function Add-GarminBodyComposition (alias Add-BodyComposition): single weigh-in via temporary FIT upload,
+    kg or lbs from the profile measurement system, '.' or ',' as decimal separator
+  - New-GarminWeightFitFile writes optional values only when passed (no 0 values in Garmin Connect)
+  - Added private functions Get-GCCareArgumentText and ConvertTo-GCCareDecimal
+  - Added start/end logging with run time to all private main functions
+  - Fixed Convert-KmhToPace returning "60 sec" for paces like 5:59.6
+
+- Version 2026.10.2.714
+  - Replaced all Python Functions by PowerShell
 
 - Version 2026.10.1.1419
   - Remove unused Functions

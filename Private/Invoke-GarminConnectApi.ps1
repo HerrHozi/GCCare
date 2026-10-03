@@ -53,7 +53,7 @@ function ConvertFrom-GarminJwtPayload {
 }
 
 function Resolve-GarminTokenFile {
-    # A directory (default ~/.garminconnect) means <dir>\garmin_tokens.json
+    # A directory (default ~/.garminconnect) means <dir>\gctoken.json
     param(
         [string]$TokenStore
     )
@@ -65,9 +65,10 @@ function Resolve-GarminTokenFile {
         $TokenStore = Join-Path -Path $HOME -ChildPath '.garminconnect'
     }
 
-    $path = [System.IO.Path]::GetFullPath($TokenStore.Replace('~', $HOME))
+    # Expand only a leading ~ (8.3 short names like C:\Users\HOLGER~1 contain ~ as well)
+    $path = [System.IO.Path]::GetFullPath(($TokenStore -replace '^~(?=$|[\\/])', $HOME))
     if ((Test-Path -LiteralPath $path -PathType Container) -or [System.IO.Path]::GetExtension($path) -ne '.json') {
-        return Join-Path -Path $path -ChildPath 'garmin_tokens.json'
+        return Join-Path -Path $path -ChildPath 'gctoken.json'
     }
     return $path
 }
@@ -79,13 +80,21 @@ function Get-GarminAccessToken {
     )
 
     $tokenFile = Resolve-GarminTokenFile -TokenStore $TokenStore
-    if (-not (Test-Path -LiteralPath $tokenFile -PathType Leaf)) {
-        throw "No Garmin token file found at '$tokenFile'. Sign in first with Get-GarminToken."
+
+    $store = $null
+    if (Test-Path -LiteralPath $tokenFile -PathType Leaf) {
+        $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
     }
 
-    $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
-    if (-not $store.di_token) {
-        throw "The token file '$tokenFile' contains no DI token. Sign in again with Get-GarminToken."
+    # No (usable) token yet: sign in interactively and continue with the new token
+    if (-not $store -or -not $store.di_token) {
+        Write-Log -Message "    >> No Garmin token in $tokenFile, starting sign-in"
+        Invoke-Output -Type Info -Message "No Garmin Connect token found ($tokenFile) - starting sign-in..." -NoExtraLines
+        $null = Get-GarminToken -TokenFile $tokenFile
+        if (-not (Test-Path -LiteralPath $tokenFile -PathType Leaf)) {
+            throw "Garmin Connect sign-in did not create a token file at '$tokenFile'."
+        }
+        $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
     }
 
     $payload = ConvertFrom-GarminJwtPayload -Token $store.di_token
@@ -145,6 +154,11 @@ function Invoke-GarminConnectApi {
         [string]$TokenStore
     )
 
+    $CurrentFunction = Get-FunctionName
+    Write-Log -Message "### Start Function $CurrentFunction ###"
+    $StartRunTime = (Get-Date).ToString($Script:DateFormatLog)
+    #################### main code | out- host #####################
+
     $accessToken = Get-GarminAccessToken -TokenStore $TokenStore
     $uri = $Script:GarminConnectApiBase + '/' + $Path.TrimStart('/')
     if ($Query.Count -gt 0) {
@@ -173,18 +187,22 @@ function Invoke-GarminConnectApi {
 
     $response = Invoke-WebRequest @request
 
+    $result = $null
     $status = [int]$response.StatusCode
     switch ($status) {
         { $_ -in 200, 201, 202 } {
             if ($OutFile) {
                 [System.IO.File]::WriteAllBytes([System.IO.Path]::GetFullPath($OutFile), $response.RawContentStream.ToArray())
-                return Get-Item -LiteralPath $OutFile
+                $result = Get-Item -LiteralPath $OutFile
+                break
             }
             $content = if ($response.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($response.Content) } else { [string]$response.Content }
-            if ([string]::IsNullOrWhiteSpace($content)) { return $null }
-            return $content | ConvertFrom-Json -Depth 100
+            if (-not [string]::IsNullOrWhiteSpace($content)) {
+                $result = $content | ConvertFrom-Json -Depth 100
+            }
+            break
         }
-        204 { return $null }
+        204 { break }
         409 { throw "Garmin API $Path : conflict (409), e.g. the activity already exists." }
         401 { throw "Garmin API $Path : authentication required (401). Sign in again with Get-GarminToken." }
         403 { throw "Garmin API $Path : access denied (403)." }
@@ -192,4 +210,12 @@ function Invoke-GarminConnectApi {
         429 { throw "Garmin API $Path : rate limited (429), please wait before retrying." }
         default { throw "Garmin API $Path : HTTP $status." }
     }
+
+    ######################## main code ############################
+    $runtime = Get-RunTime -StartRunTime $StartRunTime
+    #Add-SAFunctionRunTime -Function $CurrentFunction -Runtime $runtime
+    Write-Log -Message "    Run Time: $runtime [h] ###"
+    Write-Log -Message "### End Function $CurrentFunction ###"
+
+    return $result
 }

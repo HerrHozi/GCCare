@@ -6,7 +6,7 @@ Fetches the most recent Garmin Connect activity.
 `Get-GarminLastActivity` calls the Garmin Connect API endpoint
 `/activitylist-service/activities/search/activities` directly from PowerShell.
  Authentication uses the DI OAuth2 token store written by `Get-GarminToken`
-(`garmin_tokens.json`). An access token that expires within 15 minutes is
+(`gctoken.json`). An access token that expires within 15 minutes is
 refreshed automatically and saved back.
 
 Returns a summary object with these properties:
@@ -20,7 +20,7 @@ Returns a summary object with these properties:
 - ElevationGainMeters: Elevation gain in meters.
 
 .PARAMETER TokenStore
-Optional path to the Garmin Connect token store directory or `garmin_tokens.json` file.
+Optional path to the Garmin Connect token store directory or `gctoken.json` file.
 Defaults to `$env:GARMINTOKENS`, then `~\.garminconnect`.
 
 .PARAMETER Raw

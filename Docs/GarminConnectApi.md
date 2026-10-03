@@ -3,7 +3,7 @@
 ```Text
 Source:          garminconnect 0.3.17 (python-garminconnect) and demo.py of GCCare
 Base URL:        https://connectapi.garmin.com
-Authentication:  DI OAuth2 bearer token (garmin_tokens.json, see Get-GarminToken.ps1 / Connect-GC)
+Authentication:  DI OAuth2 bearer token (gctoken.json, created by Get-GarminToken)
 Helper:          GCCare\Private\GarminConnectApi.ps1
 ```
 
@@ -53,10 +53,10 @@ Invoke-GarminConnectApi -Path "/userstats-service/wellness/daily/$displayName" -
 Invoke-GarminConnectApi -Path "/activity-service/activity/$activityId" -Method Put -Body @{ activityId = $activityId; activityName = 'Morning Run' }
 
 # Download a file
-Invoke-GarminConnectApi -Path "/download-service/export/tcx/activity/$activityId" -OutFile "C:\Users\Public\GCCare\activity_$activityId.tcx"
+Invoke-GarminConnectApi -Path "/download-service/export/tcx/activity/$activityId" -OutFile "$env:USERPROFILE\GCCare\activity_$activityId.tcx"
 
 # Multipart upload
-Invoke-GarminConnectApi -Path '/upload-service/upload' -Method Post -Form @{ file = Get-Item 'C:\Users\Public\GCCare\FitFiles\weight.fit' }
+Invoke-GarminConnectApi -Path '/upload-service/upload' -Method Post -Form @{ file = Get-Item "$env:USERPROFILE\GCCare\FitFiles\weight.fit" }
 ```
 
 | Parameter | Description |
@@ -67,7 +67,7 @@ Invoke-GarminConnectApi -Path '/upload-service/upload' -Method Post -Form @{ fil
 | `-Body` | Object or JSON string, sent as `application/json` |
 | `-Form` | Hashtable for `multipart/form-data` uploads |
 | `-OutFile` | Save raw response (FIT, TCX, GPX, KML, CSV, ZIP) instead of parsing JSON |
-| `-TokenStore` | Token directory or `garmin_tokens.json` (default: `$env:GARMINTOKENS`, then `~\.garminconnect`) |
+| `-TokenStore` | Token directory or `gctoken.json` (default: `$env:GARMINTOKENS`, then `~\.garminconnect`) |
 
 ## Placeholders
 
@@ -162,7 +162,7 @@ $rhr.allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE | Select-Object calendarD
 | GET | `/weight-service/weight/dayview/{date}` | `includeAll=true` | `get_daily_weigh_ins` |
 | POST | `/weight-service/user-weight` | Body: see below | `add_weigh_in` |
 | DELETE | `/weight-service/weight/{date}/byversion/{weightPk}` | - | `delete_weigh_in` |
-| POST | `/upload-service/upload` | Form: FIT file with weight scale message | `add_body_composition` |
+| POST | `/upload-service/upload` | Form: FIT file with weight scale message | `add_body_composition` (used by `Add-GarminBodyComposition`, `Convert-TanitaExportToFitFile -Upload`) |
 | GET | `/bloodpressure-service/bloodpressure/range/{start}/{end}` | `includeAll=true` | `get_blood_pressure` |
 | POST | `/bloodpressure-service/bloodpressure` | Body: see below | `set_blood_pressure` |
 | DELETE | `/bloodpressure-service/bloodpressure/{date}/{version}` | - | `delete_blood_pressure` |
@@ -255,7 +255,7 @@ $readiness | Where-Object inputContext -eq 'AFTER_WAKEUP_RESET' | Select-Object 
 
 | Method | Endpoint | Query / Body | garminconnect |
 | --- | --- | --- | --- |
-| GET | `/activitylist-service/activities/search/activities` | `start`, `limit`, `activityType`, `activitySubType` | `get_activities`, `get_last_activity` |
+| GET | `/activitylist-service/activities/search/activities` | `start`, `limit`, `activityType`, `activitySubType` | `get_activities`, `get_last_activity` (used by `Get-GarminActivity`, `Get-GarminLastActivity`) |
 | GET | `/activitylist-service/activities/search/activities` | `startDate`, `endDate`, `start`, `limit`, `activityType`, `sortOrder` | `get_activities_by_date` (paged by 20) |
 | GET | `/activitylist-service/activities/count` | - | `count_activities` (`totalCount`) |
 | GET | `/mobile-gateway/heartRate/forDate/{date}` | - | `get_activities_fordate` |
@@ -329,11 +329,11 @@ Invoke-GarminConnectApi "/activity-service/activity/$activityId/splits" |
 
 ```powershell
 # Download the original FIT file
-Invoke-GarminConnectApi "/download-service/files/activity/$activityId" -OutFile "C:\Users\Public\GCCare\$activityId.zip"
-Expand-Archive "C:\Users\Public\GCCare\$activityId.zip" -DestinationPath 'C:\Users\Public\GCCare\FitFiles' -Force
+Invoke-GarminConnectApi "/download-service/files/activity/$activityId" -OutFile "$env:USERPROFILE\GCCare\$activityId.zip"
+Expand-Archive "$env:USERPROFILE\GCCare\$activityId.zip" -DestinationPath "$env:USERPROFILE\GCCare\FitFiles" -Force
 
 # Upload FIT files (replacement for Send-FitFileToGarminConnect)
-Get-ChildItem 'C:\Users\Public\GCCare\FitFiles\*.fit' | ForEach-Object {
+Get-ChildItem "$env:USERPROFILE\GCCare\FitFiles\*.fit" | ForEach-Object {
     Invoke-GarminConnectApi '/upload-service/upload/fit' -Method Post -Form @{ file = $_ }
 }
 ```
@@ -365,11 +365,11 @@ $gear | ForEach-Object {
 
 | Method | Endpoint | Query / Body | garminconnect |
 | --- | --- | --- | --- |
-| GET | `/badge-service/badge/earned` | - | `get_earned_badges` (used by `Get-GarminBadges`) |
-| GET | `/badge-service/badge/available` | `showExclusiveBadge=true` | `get_available_badges` |
+| GET | `/badge-service/badge/earned` | - | `get_earned_badges` (used by `Get-GarminBadge -Type Earned`) |
+| GET | `/badge-service/badge/available` | `showExclusiveBadge=true` | `get_available_badges` (used by `Get-GarminBadge -Type Available`) |
 | GET | `/badgechallenge-service/badgeChallenge/completed` | `start`, `limit` | `get_badge_challenges` |
 | GET | `/badgechallenge-service/badgeChallenge/available` | `start`, `limit` | `get_available_badge_challenges` |
-| GET | `/badgechallenge-service/badgeChallenge/non-completed` | `start`, `limit` | `get_non_completed_badge_challenges` |
+| GET | `/badgechallenge-service/badgeChallenge/non-completed` | `start` (1-based), `limit` | `get_non_completed_badge_challenges` (used by `Get-GarminBadge -Type NonCompleted`) |
 | GET | `/badgechallenge-service/virtualChallenge/inProgress` | `start`, `limit` | `get_inprogress_virtual_challenges` |
 | GET | `/adhocchallenge-service/adHocChallenge/historical` | `start`, `limit` | `get_adhoc_challenges` |
 
@@ -490,7 +490,7 @@ Combined calls that the Python library builds from several endpoints:
 | `get_next_scheduled_workout` | Calendar of the current and next month, first workout on or after today |
 | `get_daily_steps`, `get_sleep_daily` | Split ranges longer than 28 days into 28-day chunks |
 | `delete_weigh_ins` | Day view, then DELETE every `samplePk` |
-| `logout` | Delete `garmin_tokens.json` |
+| `logout` | Delete `gctoken.json` |
 
 ```powershell
 # Split a long date range into 28-day chunks (daily steps, daily sleep)

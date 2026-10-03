@@ -7,11 +7,20 @@
 @{
     PrivateData       = @{
         PSData = @{
-            LastUpdate = '2026-10-01'
+            LastUpdate = '2026-10-03'
             Tags         = @('Garmin', 'GarminConnect', 'PowerShell', 'PowerShellModule', 'FIT', 'TCX', 'Health', 'Fitness', 'BodyComposition', 'GarminConnectCare')
             ProjectUri   = 'https://github.com/HerrHozi/GCCare'
             LicenseUri   = 'https://github.com/HerrHozi/GCCare/blob/main/LICENSE'
             ReleaseNotes = '            
+
+2026.6.1.1089
+        - Added & improved Function: 
+        - Add-GarminBodyComposition
+        - Get-GarminBadge
+        - Get-GarminActivity
+
+- Version 2026.10.2.714
+        - Replaced all Python Functions by PowerShell
 
 2026.8.19.925
         - Added Function Invoke-PipInstall.ps1
@@ -40,7 +49,7 @@
     
 
     RootModule        = 'GCCare.psm1'
-    ModuleVersion = '2026.10.1.1419'
+    ModuleVersion = '2026.10.3.686'
     GUID              = '18240772-2f3d-408e-be7e-bc1ca3d407d9'
 
     Author            = 'Holger Zimmermann | zimmermann.holger@live.de'

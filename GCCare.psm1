@@ -24,22 +24,22 @@ On import, the module:
 2. Loads all scripts from Private/Public/Common
 3. Exports public functions (and aliases, if defined)
 4. Optionally exports private functions when GCCare_EXPORT_PRIVATE=1
-5. Ensures required folders exist under $env:PUBLIC\GCCare
+5. Ensures required folders exist under $env:USERPROFILE\GCCare
 6. Copies the default configuration (GCCare.json) if it does not exist yet
 7. Shows module banner/version and quick-start hints
 
 .DEFAULT DIRECTORIES
-- Logs:      $env:PUBLIC\GCCare\Logs
-- Temp:      $env:PUBLIC\GCCare\Temp
-- Config:    $env:PUBLIC\GCCare\Config
-- CleanUp:   $env:PUBLIC\GCCare\CleanUp
-- FitFiles:  $env:PUBLIC\GCCare\FitFiles
+- Logs:      $env:USERPROFILE\GCCare\Logs
+- Temp:      $env:USERPROFILE\GCCare\Temp
+- Config:    $env:USERPROFILE\GCCare\Config
+- CleanUp:   $env:USERPROFILE\GCCare\CleanUp
+- FitFiles:  $env:USERPROFILE\GCCare\FitFiles
 
 .REQUIREMENTS
 - Windows
 - PowerShell 7.1 or later
 - Garmin Connect commands: token store created by Get-GarminToken
-  (default: ~\.garminconnect\garmin_tokens.json)
+  (default: ~\.garminconnect\gctoken.json)
 
 .NOTES
 Author: HerrHozi | zimmermann.holger@live.de
@@ -57,12 +57,12 @@ $GGCModuleName = $MyInvocation.MyCommand.ScriptBlock.Module.Name
 $GGCModuleManifest = (Test-ModuleManifest -Path $(join-path $GGCModulePath -ChildPath "\$GGCModuleName.psd1"))
 $GGCModuleLastUpdate = $GGCModuleManifest.PrivateData.PSData.LastUpdate
 
-$script:GCCarePublicDir = Join-Path -Path $env:PUBLIC -ChildPath "GCCare"
-$Script:GCCareLogDir = Join-Path -Path $script:GCCarePublicDir -ChildPath "Logs"
-$Script:GCCareTempDir = Join-Path -Path $script:GCCarePublicDir -ChildPath "Temp"
-$Script:GCCareConfigDir = Join-Path -Path $script:GCCarePublicDir -ChildPath "Config"
-$Script:DefaultCleanUpFolder = Join-Path -Path $script:GCCarePublicDir -ChildPath "CleanUp"
-$Script:DefaultFitFilesFolder = Join-Path -Path $script:GCCarePublicDir -ChildPath "FitFiles"
+$script:GCCareDataDir = Join-Path -Path $env:USERPROFILE -ChildPath "GCCare"
+$Script:GCCareLogDir = Join-Path -Path $script:GCCareDataDir -ChildPath "Logs"
+$Script:GCCareTempDir = Join-Path -Path $script:GCCareDataDir -ChildPath "Temp"
+$Script:GCCareConfigDir = Join-Path -Path $script:GCCareDataDir -ChildPath "Config"
+$Script:DefaultExamplesFolder = Join-Path -Path $script:GCCareDataDir -ChildPath "Examples"
+$Script:DefaultFitFilesFolder = Join-Path -Path $script:GCCareDataDir -ChildPath "FitFiles"
 
 
 $Script:ASModuleLog = Join-Path -Path $Script:GCCareLogDir -ChildPath "GCCare.log"
@@ -185,13 +185,18 @@ if ($ExportPrivateFunctions -and $PrivatePath) {
 Invoke-GCCareDirectory -Directory $Script:GCCareLogDir
 Invoke-GCCareDirectory -Directory $Script:GCCareTempDir
 Invoke-GCCareDirectory -Directory $Script:GCCareConfigDir
-Invoke-GCCareDirectory -Directory (Join-Path -Path $script:GCCarePublicDir -ChildPath "MaliciousTools")
-Invoke-GCCareDirectory -Directory $Script:DefaultCleanUpFolder
 Invoke-GCCareDirectory -Directory $Script:DefaultFitFilesFolder
+#nvoke-GCCareDirectory -Directory $Script:DefaultExamplesFolder
+
 
 If (-not (Test-Path -Path $Script:ConfigFile)) {
     copy-item "$GGCModulePath\GCCare.json" -Destination $Script:ConfigFile
 }
+
+If (-not (Test-Path -Path $Script:DefaultExamplesFolder)) {
+    copy-item "$GGCModulePath\Examples" -Destination $Script:DefaultExamplesFolder -Recurse -Force
+}
+
 
 
 Show-PiskelFile -PiskelPath (Join-Path -Path $GGCModulePath -ChildPath "GCCare.piskel") -addshadow
@@ -206,16 +211,20 @@ Write-Host "'GCCare'`n`n" -ForegroundColor DarkCyan
 
 #Write-Host "  Description:     $($GGCModuleManifest.Description) " -ForegroundColor Gray
 #Write-Host "  Version:         $($GGCModuleManifest.Version) | Last Update: $GGCModuleLastUpdate | Author: $($GGCModuleManifest.Author) " -ForegroundColor Gray
-Write-Host "`n  [>] Quick-Start: " -NoNewline -ForegroundColor Gray 
+Write-Host "  [>] Quick-Start: " -NoNewline -ForegroundColor Gray 
 
-Write-HighlightedCode  -code "Update-TCXFile"
-Write-HighlightedCode  -code "                   Convert-TanitaExportToFitFile"
-Write-HighlightedCode  -code "                   Get-GarminToken"
-Write-HighlightedCode  -code "                   Send-FitFileToGarminConnect"
+Write-HighlightedCode  -code "Get-GarminToken"
+Write-HighlightedCode  -code "                   Get-GarminUser -Quiet | Format-Table"
+Write-HighlightedCode  -code "                   Convert-TanitaExportToFitFile -LastX 7 -Upload"
 Write-HighlightedCode  -code "                   Get-WeeklyBodyMetrics"
+Write-HighlightedCode  -code "                   Update-TCXFile"
 Write-HighlightedCode  -code "                   Invoke-TCXFileAnalysis | Select-Object Lap, TotalDistance, TotalTime,  Laptime, MovingTime, NonMovingTime, AscentMeters, DescentMeters, TotalAscentMeters, TotalDescentMeters | ft"
-Write-HighlightedCode  -code "                   Get-GarminBadges -GroupBy Month | Where-Object {`$_.Year -eq 2025} | ft"
-Write-HighlightedCode  -code "                   Get-GarminUser | Ft"
+Write-HighlightedCode  -code "                   Get-GarminBadge -GroupBy Month | Where-Object {`$_.Year -eq 2026} | ft"
+Write-HighlightedCode  -code "                   Get-GarminBadge -Type NonCompleted -CustomSelection | ft"
+Write-HighlightedCode  -code "                   Get-GarminActivity -StartDate 2026-01-01 -GroupBy Month -ActivityType running | ft"
+Write-HighlightedCode  -code "                   Add-GarminBodyComposition -Weight 94,5 -BodyFat 26,7 -BodyWater 54,7 -MuscleMass 66,2 -BoneMass 3,4"
 
 Write-host "`n"
 $host.ui.RawUI.WindowTitle = "$GGCModuleName - $($GGCModuleManifest.Version)"
+
+
