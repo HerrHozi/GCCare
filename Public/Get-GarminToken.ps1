@@ -11,7 +11,7 @@ sign-in flow as the Garmin Connect mobile app:
   3. With -Refresh: renews the access token with the stored refresh token - no password needed.
 
 The tokens are saved to `gctoken.json`. All GCCare functions that talk to Garmin Connect
-(`Get-GarminBadges`, `Get-GarminLastActivity`, `Get-GarminUser`, `Send-FitFileToGarminConnect`,
+(`Add-GarminBodyComposition`, `Get-GarminActivity`, `Get-GarminBadge`, `Get-GarminLastActivity`, `Get-GarminUser`, `Send-FitFileToGarminConnect`,
 `Convert-TanitaExportToFitFile -Upload`) read this file and refresh the access token
 automatically. If no token file exists yet, these functions call `Get-GarminToken`
 themselves, so an explicit sign-in is optional.

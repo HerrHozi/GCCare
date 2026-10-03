@@ -162,7 +162,7 @@ $rhr.allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE | Select-Object calendarD
 | GET | `/weight-service/weight/dayview/{date}` | `includeAll=true` | `get_daily_weigh_ins` |
 | POST | `/weight-service/user-weight` | Body: see below | `add_weigh_in` |
 | DELETE | `/weight-service/weight/{date}/byversion/{weightPk}` | - | `delete_weigh_in` |
-| POST | `/upload-service/upload` | Form: FIT file with weight scale message | `add_body_composition` |
+| POST | `/upload-service/upload` | Form: FIT file with weight scale message | `add_body_composition` (used by `Add-GarminBodyComposition`, `Convert-TanitaExportToFitFile -Upload`) |
 | GET | `/bloodpressure-service/bloodpressure/range/{start}/{end}` | `includeAll=true` | `get_blood_pressure` |
 | POST | `/bloodpressure-service/bloodpressure` | Body: see below | `set_blood_pressure` |
 | DELETE | `/bloodpressure-service/bloodpressure/{date}/{version}` | - | `delete_blood_pressure` |
@@ -255,7 +255,7 @@ $readiness | Where-Object inputContext -eq 'AFTER_WAKEUP_RESET' | Select-Object 
 
 | Method | Endpoint | Query / Body | garminconnect |
 | --- | --- | --- | --- |
-| GET | `/activitylist-service/activities/search/activities` | `start`, `limit`, `activityType`, `activitySubType` | `get_activities`, `get_last_activity` |
+| GET | `/activitylist-service/activities/search/activities` | `start`, `limit`, `activityType`, `activitySubType` | `get_activities`, `get_last_activity` (used by `Get-GarminActivity`, `Get-GarminLastActivity`) |
 | GET | `/activitylist-service/activities/search/activities` | `startDate`, `endDate`, `start`, `limit`, `activityType`, `sortOrder` | `get_activities_by_date` (paged by 20) |
 | GET | `/activitylist-service/activities/count` | - | `count_activities` (`totalCount`) |
 | GET | `/mobile-gateway/heartRate/forDate/{date}` | - | `get_activities_fordate` |
@@ -365,11 +365,11 @@ $gear | ForEach-Object {
 
 | Method | Endpoint | Query / Body | garminconnect |
 | --- | --- | --- | --- |
-| GET | `/badge-service/badge/earned` | - | `get_earned_badges` (used by `Get-GarminBadges`) |
-| GET | `/badge-service/badge/available` | `showExclusiveBadge=true` | `get_available_badges` |
+| GET | `/badge-service/badge/earned` | - | `get_earned_badges` (used by `Get-GarminBadge -Type Earned`) |
+| GET | `/badge-service/badge/available` | `showExclusiveBadge=true` | `get_available_badges` (used by `Get-GarminBadge -Type Available`) |
 | GET | `/badgechallenge-service/badgeChallenge/completed` | `start`, `limit` | `get_badge_challenges` |
 | GET | `/badgechallenge-service/badgeChallenge/available` | `start`, `limit` | `get_available_badge_challenges` |
-| GET | `/badgechallenge-service/badgeChallenge/non-completed` | `start`, `limit` | `get_non_completed_badge_challenges` |
+| GET | `/badgechallenge-service/badgeChallenge/non-completed` | `start` (1-based), `limit` | `get_non_completed_badge_challenges` (used by `Get-GarminBadge -Type NonCompleted`) |
 | GET | `/badgechallenge-service/virtualChallenge/inProgress` | `start`, `limit` | `get_inprogress_virtual_challenges` |
 | GET | `/adhocchallenge-service/adHocChallenge/historical` | `start`, `limit` | `get_adhoc_challenges` |
 

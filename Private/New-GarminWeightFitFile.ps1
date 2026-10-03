@@ -101,10 +101,16 @@ function New-GarminWeightFitFile {
         [int]$VisceralFatRating,
         [int]$MetabolicAge,
         [int]$PhysiqueRating,
-        [double]$BasalMet = 2000,
-        [double]$ActiveMet = 2000,
+        [double]$BasalMet,
+        [double]$ActiveMet,
         [int]$UserProfileIndex = 0
     )
+    # Optional values are written only when passed; missing fields stay empty in Garmin Connect
+
+    $CurrentFunction = Get-FunctionName
+    Write-Log -Message "### Start Function $CurrentFunction ###"
+    $StartRunTime = (Get-Date).ToString($Script:DateFormatLog)
+    #################### main code | out- host #####################
 
     # Scaled values are stored as integers (e.g. weight 93.40 kg -> 9340)
     function Get-Scaled([double]$Value, [int]$Scale) {
@@ -124,21 +130,21 @@ function New-GarminWeightFitFile {
         )
 
         # weight_scale (global message 30)
-        Write-FitMessage -Writer $writer -GlobalMessageNumber 30 -Fields @(
-            @{ Num = 253; Type = 'uint32'; Value = $fitTime }                                # timestamp
-            @{ Num = 0; Type = 'uint16'; Value = (Get-Scaled $Weight 100) }                 # weight [kg]
-            @{ Num = 1; Type = 'uint16'; Value = (Get-Scaled $PercentFat 100) }             # percent_fat [%]
-            @{ Num = 2; Type = 'uint16'; Value = (Get-Scaled $PercentHydration 100) }       # percent_hydration [%]
-            @{ Num = 4; Type = 'uint16'; Value = (Get-Scaled $BoneMass 100) }               # bone_mass [kg]
-            @{ Num = 5; Type = 'uint16'; Value = (Get-Scaled $MuscleMass 100) }             # muscle_mass [kg]
-            @{ Num = 7; Type = 'uint16'; Value = (Get-Scaled $BasalMet 4) }                 # basal_met [kcal/day]
-            @{ Num = 8; Type = 'uint8'; Value = $PhysiqueRating }                           # physique_rating
-            @{ Num = 9; Type = 'uint16'; Value = (Get-Scaled $ActiveMet 4) }                # active_met [kcal/day]
-            @{ Num = 10; Type = 'uint8'; Value = $MetabolicAge }                            # metabolic_age [years]
-            @{ Num = 11; Type = 'uint8'; Value = $VisceralFatRating }                       # visceral_fat_rating
-            @{ Num = 12; Type = 'uint16'; Value = $UserProfileIndex }                       # user_profile_index
-            @{ Num = 13; Type = 'uint16'; Value = (Get-Scaled $Bmi 10) }                    # bmi [kg/m2]
-        )
+        $fields = [System.Collections.Generic.List[hashtable]]::new()
+        $fields.Add(@{ Num = 253; Type = 'uint32'; Value = $fitTime })                                                                          # timestamp
+        $fields.Add(@{ Num = 0; Type = 'uint16'; Value = (Get-Scaled $Weight 100) })                                                           # weight [kg]
+        if ($PSBoundParameters.ContainsKey('PercentFat')) { $fields.Add(@{ Num = 1; Type = 'uint16'; Value = (Get-Scaled $PercentFat 100) }) }             # percent_fat [%]
+        if ($PSBoundParameters.ContainsKey('PercentHydration')) { $fields.Add(@{ Num = 2; Type = 'uint16'; Value = (Get-Scaled $PercentHydration 100) }) } # percent_hydration [%]
+        if ($PSBoundParameters.ContainsKey('BoneMass')) { $fields.Add(@{ Num = 4; Type = 'uint16'; Value = (Get-Scaled $BoneMass 100) }) }                 # bone_mass [kg]
+        if ($PSBoundParameters.ContainsKey('MuscleMass')) { $fields.Add(@{ Num = 5; Type = 'uint16'; Value = (Get-Scaled $MuscleMass 100) }) }             # muscle_mass [kg]
+        if ($PSBoundParameters.ContainsKey('BasalMet')) { $fields.Add(@{ Num = 7; Type = 'uint16'; Value = (Get-Scaled $BasalMet 4) }) }                   # basal_met [kcal/day]
+        if ($PSBoundParameters.ContainsKey('PhysiqueRating')) { $fields.Add(@{ Num = 8; Type = 'uint8'; Value = $PhysiqueRating }) }                       # physique_rating
+        if ($PSBoundParameters.ContainsKey('ActiveMet')) { $fields.Add(@{ Num = 9; Type = 'uint16'; Value = (Get-Scaled $ActiveMet 4) }) }                 # active_met [kcal/day]
+        if ($PSBoundParameters.ContainsKey('MetabolicAge')) { $fields.Add(@{ Num = 10; Type = 'uint8'; Value = $MetabolicAge }) }                          # metabolic_age [years]
+        if ($PSBoundParameters.ContainsKey('VisceralFatRating')) { $fields.Add(@{ Num = 11; Type = 'uint8'; Value = $VisceralFatRating }) }                # visceral_fat_rating
+        $fields.Add(@{ Num = 12; Type = 'uint16'; Value = $UserProfileIndex })                                                                 # user_profile_index
+        if ($PSBoundParameters.ContainsKey('Bmi')) { $fields.Add(@{ Num = 13; Type = 'uint16'; Value = (Get-Scaled $Bmi 10) }) }                           # bmi [kg/m2]
+        Write-FitMessage -Writer $writer -GlobalMessageNumber 30 -Fields $fields.ToArray()
         $writer.Flush()
         $records = $stream.ToArray()
     }
@@ -165,5 +171,12 @@ function New-GarminWeightFitFile {
 
     $fullPath = [System.IO.Path]::GetFullPath($Path)
     [System.IO.File]::WriteAllBytes($fullPath, $fileBytes)
+
+    ######################## main code ############################
+    $runtime = Get-RunTime -StartRunTime $StartRunTime
+    #Add-SAFunctionRunTime -Function $CurrentFunction -Runtime $runtime
+    Write-Log -Message "    Run Time: $runtime [h] ###"
+    Write-Log -Message "### End Function $CurrentFunction ###"
+
     return Get-Item -LiteralPath $fullPath
 }

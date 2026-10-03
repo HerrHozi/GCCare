@@ -1,8 +1,8 @@
 {
   "Module": {
     "Name": "GCCare",
-    "Version": "2026.10.2.714",
-    "LastUpdated": "2026-10-02",
+    "Version": "2026.10.3.686",
+    "LastUpdated": "2026-10-03",
     "Purpose": "Content to be defined",
     "Description": "TBD"
   },
@@ -24,7 +24,33 @@
     "Physique Rating": "Physique Rating",
     "BMR (kcal)": "BMR (kcal)",
     "BMI": "BMI"
+  },
+  "GarminConnectApi": {
+    "CustomSelection": {
+      "Badge": {
+        "Earned": {
+          "Where-Object": "",
+          "Select-Object": "badgeEarnedDate, badgeName, badgeKey, badgeEarnedNumber, badgePoints, badgeTypeIds"
+        },
+        "Available": {
+          "Where-Object": "{$_.earnedByMe -eq $False}",
+          "Select-Object": "badgeEndDate,badgeName, badgeKey, badgeLimitCount, badgePoints, badgeTypeIds"
+        },
+        "NonCompleted": {
+          "Where-Object": "{$_.badgeEarnedDate -eq $null}",
+          "Select-Object": "badgeChallengeName, endDate, badgeTargetValue, badgeProgressValue"
+        }
+      },
+      "Activity": {
+        "Default": {
+          "Where-Object": "",
+          "Select-Object": "StartTime, activityName, TypeKey, TotalDistance, TotalTime, ElevGain, Unit"
+        },
+        "running": {
+          "Where-Object": "",
+          "Select-Object": "StartTime, activityName, TypeKey, TotalDistance, TotalTime, AvgPace, averageHR, ElevGain, Unit"
+        }
+      }
+    }
   }
 }
-
-

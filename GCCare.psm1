@@ -216,13 +216,15 @@ Write-Host "  [>] Quick-Start: " -NoNewline -ForegroundColor Gray
 Write-HighlightedCode  -code "Get-GarminToken"
 Write-HighlightedCode  -code "                   Get-GarminUser -Quiet | Format-Table"
 Write-HighlightedCode  -code "                   Convert-TanitaExportToFitFile -LastX 7 -Upload"
-Write-HighlightedCode  -code "                   Send-FitFileToGarminConnect"
 Write-HighlightedCode  -code "                   Get-WeeklyBodyMetrics"
 Write-HighlightedCode  -code "                   Update-TCXFile"
 Write-HighlightedCode  -code "                   Invoke-TCXFileAnalysis | Select-Object Lap, TotalDistance, TotalTime,  Laptime, MovingTime, NonMovingTime, AscentMeters, DescentMeters, TotalAscentMeters, TotalDescentMeters | ft"
-Write-HighlightedCode  -code "                   Get-GarminBadges -GroupBy Month | Where-Object {`$_.Year -eq 2026} | ft"
-
+Write-HighlightedCode  -code "                   Get-GarminBadge -GroupBy Month | Where-Object {`$_.Year -eq 2026} | ft"
+Write-HighlightedCode  -code "                   Get-GarminBadge -Type NonCompleted -CustomSelection | ft"
+Write-HighlightedCode  -code "                   Get-GarminActivity -StartDate 2026-01-01 -GroupBy Month -ActivityType running | ft"
+Write-HighlightedCode  -code "                   Add-GarminBodyComposition -Weight 94,5 -BodyFat 26,7 -BodyWater 54,7 -MuscleMass 66,2 -BoneMass 3,4"
 
 Write-host "`n"
 $host.ui.RawUI.WindowTitle = "$GGCModuleName - $($GGCModuleManifest.Version)"
+
 

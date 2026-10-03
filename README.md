@@ -9,8 +9,8 @@
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.10.2.714
-Last Update:     2026-10-02
+Current Version: 2026.10.3.686
+Last Update:     2026-10-03
 ```
 
 GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It signs in to Garmin Connect, talks to the Garmin Connect API, creates and uploads FIT files, converts body-data CSV exports, calculates weekly averages, reads badges, user profile and the latest activity, and analyzes or adjusts TCX files - without any external runtime.
@@ -27,9 +27,10 @@ GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-com
 GCCare currently provides the following capabilities:
 
 - Sign in to Garmin Connect (including MFA) and keep the access token fresh automatically.
-- Read the Garmin Connect user profile, earned badges with level summary, and the latest activity.
+- Read the Garmin Connect user profile, activities (km or miles, grouped by year, month, week or type), and earned, available or non-completed badges with level summary.
 - Convert Tanita CSV exports into Garmin-compatible weight FIT files.
 - Upload FIT files to Garmin Connect from your personal workspace folder.
+- Add a single weigh-in with body composition values (kg or lbs) to Garmin Connect.
 - Calculate weekly averages from body-composition data.
 - Analyze TCX lap metrics such as distance, time, moving time, ascent, descent, pace, and heart rate.
 - Update TCX files with recalculated lap distance and elevation values.
@@ -98,10 +99,33 @@ To use another token location, pass `-TokenStore` to the commands or set `$env:G
 Get-GarminUser -Quiet | Format-Table
 ```
 
-### Show earned badges and level
+### Show badges and level
 
 ```powershell
-Get-GarminBadges -GroupBy Year | Format-Table
+Get-GarminBadge -GroupBy Year | Format-Table
+Get-GarminBadge -Type Available -GroupBy Month | Format-Table
+Get-GarminBadge -Type NonCompleted -CustomSelection | Format-Table
+```
+
+`-Type` selects `Earned` (default), `Available` (not earned yet) or `NonCompleted` (joined challenges that are not completed yet). With `-CustomSelection`, the Where-Object filter and the Select-Object properties are read from the section `GarminConnectApi` in `$env:USERPROFILE\GCCare\Config\GCCare.json`:
+
+```json
+"GarminConnectApi": {
+  "CustomSelection": {
+    "Badge": {
+      "NonCompleted": {
+        "Where-Object": "{$_.badgeEarnedDate -eq $null}",
+        "Select-Object": "badgeChallengeName, endDate, badgeTargetValue, badgeProgressValue"
+      }
+    }
+  }
+}
+```
+
+`-Filter` and `-Property` override these values for one call; add `-SaveCustomSelection` to store them:
+
+```powershell
+Get-GarminBadge -Type NonCompleted -Property badgeChallengeName, endDate, badgeProgressValue -SaveCustomSelection
 ```
 
 ### Convert Tanita measurements to FIT files
@@ -124,6 +148,15 @@ The CSV column names are read from the section `MeasurementHeaders` in `$env:USE
 
 Keys that are not listed keep the default Tanita column name. Comma or semicolon as delimiter, decimal commas and dates like `02.10.2026 06:47` are detected automatically. For a single call, use `-HeaderMapping @{ 'Date' = 'Datum' }`.
 
+### Add a single weigh-in
+
+```powershell
+Add-GarminBodyComposition -Weight 94,5
+Add-GarminBodyComposition -Weight 94,5 -BodyFat 26,7 -BodyWater 54,7 -MuscleMass 66,2 -BoneMass 3,4 -Date '2026-10-03 07:15'
+```
+
+Only `-Weight` is mandatory; without `-Date`, the current date and time is used. Decimal numbers may be entered with `.` or `,`. Weight, muscle and bone mass are read in kg or lbs depending on the measurement system of the Garmin Connect profile (override with `-Unit`); the BMI is calculated from the profile height when `-Bmi` is not given. The values are uploaded as a temporary FIT file - values that are not passed stay empty in Garmin Connect. Use `-WhatIf` to create the FIT file without uploading it.
+
 ### Calculate weekly averages from body data
 
 ```powershell
@@ -137,6 +170,17 @@ Send-FitFileToGarminConnect -ImportDirectory "$env:USERPROFILE\GCCare\FitFiles"
 ```
 
 Uploaded files (and files Garmin Connect already knows) are moved to `FitFiles\Uploaded`, so the next run only uploads new files. Failed uploads stay in place and are retried. Use `-KeepFiles` to leave all files where they are, or `-Path` to upload single files.
+
+### Show activities
+
+```powershell
+Get-GarminActivity
+Get-GarminActivity -ActivityType all -Last 20 -Miles
+Get-GarminActivity -StartDate 2026-01-01 -GroupBy Month | Format-Table
+Get-GarminActivity -ActivityType all -StartDate 2026-09-01 -EndDate 2026-09-30 -GroupBy ActivityType | Format-Table
+```
+
+Without parameters, the last 10 running activities (including trail and treadmill runs) are returned. The API objects are extended with `StartTime`, `TypeKey`, `TotalDistance`, `TotalTime`, `AvgPace`, `AvgSpeed`, `ElevGain` and `Unit` - metric by default, imperial with `-Miles`. `-GroupBy` accepts `Year`, `Month`, `Week` (ISO) and `ActivityType`. `-CustomSelection`, `-Filter`, `-Property` and `-SaveCustomSelection` work like for badges; the values are stored per activity type under `GarminConnectApi > CustomSelection > Activity` (fallback `Default`).
 
 ### Inspect the latest Garmin activity
 
@@ -162,8 +206,10 @@ The module currently exports the following commands:
 
 | Command | Alias | Purpose |
 | --- | --- | --- |
+| `Add-GarminBodyComposition` | `Add-BodyComposition` | Add a single weigh-in with optional body composition values (kg or lbs) to Garmin Connect. |
 | `Convert-TanitaExportToFitFile` | None | Convert Tanita CSV exports to Garmin-compatible weight FIT files and optionally upload them. |
-| `Get-GarminBadges` | None | Return earned Garmin Connect badges with points and level, optionally grouped by year, month or name. |
+| `Get-GarminActivity` | None | Return Garmin Connect activities (default: last 10 runs) with distance, time, pace and elevation in km or miles, optionally grouped by year, month, week or activity type. |
+| `Get-GarminBadge` | `Get-GarminBadges` | Return earned, available or non-completed Garmin Connect badges with points and level, optionally grouped by year, month or name, or with a custom selection from `GCCare.json`. |
 | `Get-GarminLastActivity` | None | Return the most recent Garmin Connect activity. |
 | `Get-GarminToken` | None | Sign in to Garmin Connect and create or refresh the token store. |
 | `Get-GarminUser` | None | Return the Garmin Connect user profile and personal settings. |
@@ -177,8 +223,10 @@ Use `Get-Help` for detailed command documentation:
 ```powershell
 Get-Help Get-GarminToken -Full
 Get-Help Get-GarminUser -Full
-Get-Help Get-GarminBadges -Full
+Get-Help Get-GarminBadge -Full
+Get-Help Get-GarminActivity -Full
 Get-Help Get-GarminLastActivity -Full
+Get-Help Add-GarminBodyComposition -Full
 Get-Help Convert-TanitaExportToFitFile -Full
 Get-Help Send-FitFileToGarminConnect -Full
 Get-Help Get-WeeklyBodyMetrics -Full
@@ -206,7 +254,7 @@ The Garmin Connect API is not official. Garmin may change endpoints or the sign-
 2. Sign in once with `Get-GarminToken`.
 3. Convert Tanita exports with `Convert-TanitaExportToFitFile` or inspect weekly averages with `Get-WeeklyBodyMetrics`.
 4. Upload the generated FIT files with `Send-FitFileToGarminConnect` (or `Convert-TanitaExportToFitFile -Upload`).
-5. Check badges, user profile or the latest activity with `Get-GarminBadges`, `Get-GarminUser` and `Get-GarminLastActivity`.
+5. Check badges, user profile or activities with `Get-GarminBadge`, `Get-GarminUser`, `Get-GarminActivity` and `Get-GarminLastActivity`.
 6. Analyze or update TCX files when you need corrected lap distance or elevation values.
 
 ## Logging and Output

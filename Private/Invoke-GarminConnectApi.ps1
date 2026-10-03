@@ -154,6 +154,11 @@ function Invoke-GarminConnectApi {
         [string]$TokenStore
     )
 
+    $CurrentFunction = Get-FunctionName
+    Write-Log -Message "### Start Function $CurrentFunction ###"
+    $StartRunTime = (Get-Date).ToString($Script:DateFormatLog)
+    #################### main code | out- host #####################
+
     $accessToken = Get-GarminAccessToken -TokenStore $TokenStore
     $uri = $Script:GarminConnectApiBase + '/' + $Path.TrimStart('/')
     if ($Query.Count -gt 0) {
@@ -182,18 +187,22 @@ function Invoke-GarminConnectApi {
 
     $response = Invoke-WebRequest @request
 
+    $result = $null
     $status = [int]$response.StatusCode
     switch ($status) {
         { $_ -in 200, 201, 202 } {
             if ($OutFile) {
                 [System.IO.File]::WriteAllBytes([System.IO.Path]::GetFullPath($OutFile), $response.RawContentStream.ToArray())
-                return Get-Item -LiteralPath $OutFile
+                $result = Get-Item -LiteralPath $OutFile
+                break
             }
             $content = if ($response.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($response.Content) } else { [string]$response.Content }
-            if ([string]::IsNullOrWhiteSpace($content)) { return $null }
-            return $content | ConvertFrom-Json -Depth 100
+            if (-not [string]::IsNullOrWhiteSpace($content)) {
+                $result = $content | ConvertFrom-Json -Depth 100
+            }
+            break
         }
-        204 { return $null }
+        204 { break }
         409 { throw "Garmin API $Path : conflict (409), e.g. the activity already exists." }
         401 { throw "Garmin API $Path : authentication required (401). Sign in again with Get-GarminToken." }
         403 { throw "Garmin API $Path : access denied (403)." }
@@ -201,4 +210,12 @@ function Invoke-GarminConnectApi {
         429 { throw "Garmin API $Path : rate limited (429), please wait before retrying." }
         default { throw "Garmin API $Path : HTTP $status." }
     }
+
+    ######################## main code ############################
+    $runtime = Get-RunTime -StartRunTime $StartRunTime
+    #Add-SAFunctionRunTime -Function $CurrentFunction -Runtime $runtime
+    Write-Log -Message "    Run Time: $runtime [h] ###"
+    Write-Log -Message "### End Function $CurrentFunction ###"
+
+    return $result
 }
