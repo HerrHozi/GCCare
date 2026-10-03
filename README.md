@@ -18,8 +18,10 @@ GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-com
 ## Project Information
 
 - Author: Holger Zimmermann
-- Project: <https://github.com/HerrHozi/GCCare>
-- Blog: <https://herrhozi.com>
+- Project:   <https://github.com/HerrHozi/GCCare>
+- Blog:      <https://herrhozi.com>
+- Garmin:    <https://connect.garmin.com/app/profile/00zimbo> | feel free to connect
+- Strava:    <https://www.strava.com/athletes/69009718>  | feel free to connect
 - License: MIT
 
 ## What GCCare Does
