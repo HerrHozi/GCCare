@@ -120,10 +120,8 @@ Function Convert-TanitaExportToFitFile {
         [switch]$EnableLogging
     )
 
-    $CurrentFunction = Get-FunctionName
-    Write-Log -Message "### Start Function $CurrentFunction ###"
-    $StartRunTime = (Get-Date).ToString($Script:DateFormatLog)
-    #################### main code | out- host #####################
+
+    $info = Measure-FunctionRuntime -Begin
 
     Invoke-Output -Type Header -Message "Converting Tanita CSV to FIT files ..."
 
@@ -280,9 +278,7 @@ Function Convert-TanitaExportToFitFile {
     if ($Upload -and $createdFiles.Count -gt 0) {
         $null = Send-FitFileToGarminConnect -Path $createdFiles.FullName -TokenStore $TokenStore
     }
-    ######################## main code ############################
-    $runtime = Get-RunTime -StartRunTime $StartRunTime
-    Write-Log -Message "    Run Time: $runtime [h] ###"
-    Write-Log -Message "### End Function $CurrentFunction ###"
+    Measure-FunctionRuntime -End -Details $info
+
 
 }

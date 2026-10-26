@@ -27,15 +27,15 @@ function Get-GCCareArgumentText {
         $commandAst = $ast.FindAll({
                 $args[0] -is [System.Management.Automation.Language.CommandAst] -and $args[0].GetCommandName() -in $commandNames
             }, $true) |
-            Sort-Object -Property { [math]::Abs($_.Extent.StartColumnNumber - $Invocation.OffsetInLine) } |
-            Select-Object -First 1
+        Sort-Object -Property { [math]::Abs($_.Extent.StartColumnNumber - $Invocation.OffsetInLine) } |
+        Select-Object -First 1
 
         if ($commandAst) {
             $positionalNames = @($commandParameters.Values |
-                    Where-Object { -not $_.SwitchParameter } |
-                    ForEach-Object { $p = $_; $p.ParameterSets.Values | Where-Object { $_.Position -ge 0 } | ForEach-Object { [pscustomobject]@{ Name = $p.Name; Position = $_.Position } } } |
-                    Sort-Object -Property Position -Unique |
-                    ForEach-Object { $_.Name })
+                Where-Object { -not $_.SwitchParameter } |
+                ForEach-Object { $p = $_; $p.ParameterSets.Values | Where-Object { $_.Position -ge 0 } | ForEach-Object { [pscustomobject]@{ Name = $p.Name; Position = $_.Position } } } |
+                Sort-Object -Property Position -Unique |
+                ForEach-Object { $_.Name })
             $positionIndex = 0
             $elements = @($commandAst.CommandElements | Select-Object -Skip 1)
 
@@ -64,7 +64,6 @@ function Get-GCCareArgumentText {
 
     ######################## main code ############################
     $runtime = Get-RunTime -StartRunTime $StartRunTime
-    #Add-SAFunctionRunTime -Function $CurrentFunction -Runtime $runtime
     Write-Log -Message "    Run Time: $runtime [h] ###"
     Write-Log -Message "### End Function $CurrentFunction ###"
 

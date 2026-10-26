@@ -2,9 +2,21 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.10.3.686
-Last Update:     2026-10-03
+Current Version: 2026.10.26.1130
+Last Update:     2026-10-26
 ```
+
+- Version 2026.10.26.1130
+  - 2nd release
+
+- Version 2026.10.13.650
+  - Added Function Add-GarminHydration (alias Add-Hydration): water intake in ml for one day or -LastX days
+
+- Version 2026.10.12.567
+  - TBD
+
+- Version 2026.10.3.1022
+  - TBD
 
 - Version 2026.10.3.686
   - Renamed Get-GarminBadges to Get-GarminBadge (alias Get-GarminBadges)
@@ -21,6 +33,7 @@ Last Update:     2026-10-03
   - Added private functions Get-GCCareArgumentText and ConvertTo-GCCareDecimal
   - Added start/end logging with run time to all private main functions
   - Fixed Convert-KmhToPace returning "60 sec" for paces like 5:59.6
+  - upload to github & powershell gallery
 
 - Version 2026.10.2.714
   - Replaced all Python Functions by PowerShell

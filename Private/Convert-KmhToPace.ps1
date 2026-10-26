@@ -25,7 +25,6 @@ function Convert-KmhToPace {
 
     ######################## main code ############################
     $runtime = Get-RunTime -StartRunTime $StartRunTime
-    #Add-SAFunctionRunTime -Function $CurrentFunction -Runtime $runtime
     Write-Log -Message "    Run Time: $runtime [h] ###"
     Write-Log -Message "### End Function $CurrentFunction ###"
 

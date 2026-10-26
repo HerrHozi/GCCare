@@ -5,12 +5,12 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-7.1%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Maintenance](https://img.shields.io/badge/status-active-brightgreen)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/HerrHozi/GCCare)
+[![Ask DeepWiki](https://raw.githubusercontent.com/HerrHozi/GCCare/main/.github/assets/badge-deepwiki.svg)](https://deepwiki.com/HerrHozi/GCCare)
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.10.3.686
-Last Update:     2026-10-03
+Current Version: 2026.10.26.1130
+Last Update:     2026-10-26
 ```
 
 GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It signs in to Garmin Connect, talks to the Garmin Connect API, creates and uploads FIT files, converts body-data CSV exports, calculates weekly averages, reads badges, user profile and the latest activity, and analyzes or adjusts TCX files - without any external runtime.
@@ -20,6 +20,8 @@ GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-com
 - Author: Holger Zimmermann
 - Project: <https://github.com/HerrHozi/GCCare>
 - Blog: <https://herrhozi.com>
+- Garmin: <https://connect.garmin.com/app/profile/00zimbo> | feel free to connect
+- Strava: <https://www.strava.com/athletes/69009718>  | feel free to connect
 - License: MIT
 
 ## What GCCare Does
@@ -31,6 +33,7 @@ GCCare currently provides the following capabilities:
 - Convert Tanita CSV exports into Garmin-compatible weight FIT files.
 - Upload FIT files to Garmin Connect from your personal workspace folder.
 - Add a single weigh-in with body composition values (kg or lbs) to Garmin Connect.
+- Add water intake (hydration) for one day or the last X days.
 - Calculate weekly averages from body-composition data.
 - Analyze TCX lap metrics such as distance, time, moving time, ascent, descent, pace, and heart rate.
 - Update TCX files with recalculated lap distance and elevation values.
@@ -157,6 +160,15 @@ Add-GarminBodyComposition -Weight 94,5 -BodyFat 26,7 -BodyWater 54,7 -MuscleMass
 
 Only `-Weight` is mandatory; without `-Date`, the current date and time is used. Decimal numbers may be entered with `.` or `,`. Weight, muscle and bone mass are read in kg or lbs depending on the measurement system of the Garmin Connect profile (override with `-Unit`); the BMI is calculated from the profile height when `-Bmi` is not given. The values are uploaded as a temporary FIT file - values that are not passed stay empty in Garmin Connect. Use `-WhatIf` to create the FIT file without uploading it.
 
+### Add hydration
+
+```powershell
+Add-GarminHydration 500
+Add-GarminHydration 500 -LastX 7
+```
+
+Adds the amount in ml to today's hydration (or `-Date`). With `-LastX 7`, the same amount is also added to the six days before. A negative value corrects a wrong entry; `-WhatIf` only shows the entries.
+
 ### Calculate weekly averages from body data
 
 ```powershell
@@ -207,6 +219,7 @@ The module currently exports the following commands:
 | Command | Alias | Purpose |
 | --- | --- | --- |
 | `Add-GarminBodyComposition` | `Add-BodyComposition` | Add a single weigh-in with optional body composition values (kg or lbs) to Garmin Connect. |
+| `Add-GarminHydration` | `Add-Hydration` | Add water intake in ml to Garmin Connect for one day or the last X days. |
 | `Convert-TanitaExportToFitFile` | None | Convert Tanita CSV exports to Garmin-compatible weight FIT files and optionally upload them. |
 | `Get-GarminActivity` | None | Return Garmin Connect activities (default: last 10 runs) with distance, time, pace and elevation in km or miles, optionally grouped by year, month, week or activity type. |
 | `Get-GarminBadge` | `Get-GarminBadges` | Return earned, available or non-completed Garmin Connect badges with points and level, optionally grouped by year, month or name, or with a custom selection from `GCCare.json`. |
@@ -227,6 +240,7 @@ Get-Help Get-GarminBadge -Full
 Get-Help Get-GarminActivity -Full
 Get-Help Get-GarminLastActivity -Full
 Get-Help Add-GarminBodyComposition -Full
+Get-Help Add-GarminHydration -Full
 Get-Help Convert-TanitaExportToFitFile -Full
 Get-Help Send-FitFileToGarminConnect -Full
 Get-Help Get-WeeklyBodyMetrics -Full

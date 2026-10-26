@@ -7,7 +7,7 @@
 @{
     PrivateData       = @{
         PSData = @{
-            LastUpdate = '2026-10-03'
+            LastUpdate = '2026-10-26'
             Tags         = @('Garmin', 'GarminConnect', 'PowerShell', 'PowerShellModule', 'FIT', 'TCX', 'Health', 'Fitness', 'BodyComposition', 'GarminConnectCare')
             ProjectUri   = 'https://github.com/HerrHozi/GCCare'
             LicenseUri   = 'https://github.com/HerrHozi/GCCare/blob/main/LICENSE'
@@ -49,7 +49,7 @@
     
 
     RootModule        = 'GCCare.psm1'
-    ModuleVersion = '2026.10.3.686'
+    ModuleVersion     = '2026.10.26.1130'
     GUID              = '18240772-2f3d-408e-be7e-bc1ca3d407d9'
 
     Author            = 'Holger Zimmermann | zimmermann.holger@live.de'
@@ -58,7 +58,7 @@
 
     Description       = 'GCCare is an acronym for Garmin Connect Care.'
 
-    PowerShellVersion = '7.1'
+    PowerShellVersion = '7.2'
     FunctionsToExport = '*'
     AliasesToExport   = '*'
     VariablesToExport = '*'
