@@ -10,7 +10,9 @@ sign-in flow as the Garmin Connect mobile app:
   2. Exchanges the service ticket at diauth.garmin.com for a DI access token and refresh token.
   3. With -Refresh: renews the access token with the stored refresh token - no password needed.
 
-The tokens are saved to `gctoken.json`. All GCCare functions that talk to Garmin Connect
+The tokens are saved to `gctoken.json`, encrypted with Windows DPAPI (current user + this computer): the
+file can only be read by the same user on the same computer. A copied file is useless elsewhere, and an
+existing plain-text file is encrypted on the next save. All GCCare functions that talk to Garmin Connect
 (`Add-GarminBodyComposition`, `Add-GarminHydration`, `Get-GarminActivity`, `Get-GarminBadge`, `Get-GarminLastActivity`, `Get-GarminUser`, `Send-FitFileToGarminConnect`,
 `Convert-TanitaExportToFitFile -Upload`) read this file and refresh the access token
 automatically. If no token file exists yet, these functions call `Get-GarminToken`
@@ -263,7 +265,7 @@ Function Get-GarminToken {
     if ($Refresh) {
         if (-not (Test-Path $TokenFile)) { throw "No stored tokens at '$TokenFile'. Sign in without -Refresh first." }
         Write-Host 'Renewing access token with the stored refresh token...' -ForegroundColor Cyan
-        $store = Update-DiToken (Get-Content $TokenFile -Raw | ConvertFrom-Json)
+        $store = Update-DiToken (Read-GarminTokenStore -Path $TokenFile)
     }
     else {
         $cred = Get-Credential -Message 'Garmin Connect sign-in (e-mail and password)'
@@ -274,10 +276,8 @@ Function Get-GarminToken {
         $store = Get-DiToken $ticket
     }
 
-    # Save (UTF-8 without BOM)
-    $dir = Split-Path $TokenFile -Parent
-    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
-    $store | ConvertTo-Json -Compress | Set-Content -Path $TokenFile -Encoding utf8NoBOM
+    # Save encrypted (Windows DPAPI: current user + this computer)
+    Save-GarminTokenStore -Path $TokenFile -Store $store
 
     $payload = ConvertFrom-JwtPayload $store.di_token
     $expiresAt = if ($payload -and $payload.PSObject.Properties['exp']) { [DateTimeOffset]::FromUnixTimeSeconds([long]$payload.exp).LocalDateTime } else { $null }

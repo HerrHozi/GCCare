@@ -2,21 +2,22 @@
 
 ```Text
 Author:          Holger Zimmermann | <zimmermann.holger@live.de>
-Current Version: 2026.10.26.1130
-Last Update:     2026-10-26
+Current Version: 2026.11.1.800
+Last Update:     2026-11-01
 ```
 
-- Version 2026.10.26.1130
-  - 2nd release
+- Version 2026.11.1.800
+  - Upload to GitHub & Powershell Gallery
+
+- Version 2026.10.26.1140
+  - Garmin token file (gctoken.json) is now encrypted with Windows DPAPI (CurrentUser + LocalMachine):
+    it can only be read by the same user on the same computer, a copied file is useless elsewhere
+  - Added private functions Save-GarminTokenStore and Read-GarminTokenStore (used by Get-GarminToken and Invoke-GarminConnectApi)
+  - An existing plain-text gctoken.json is still accepted and gets encrypted on the next save
+
 
 - Version 2026.10.13.650
   - Added Function Add-GarminHydration (alias Add-Hydration): water intake in ml for one day or -LastX days
-
-- Version 2026.10.12.567
-  - TBD
-
-- Version 2026.10.3.1022
-  - TBD
 
 - Version 2026.10.3.686
   - Renamed Get-GarminBadges to Get-GarminBadge (alias Get-GarminBadges)

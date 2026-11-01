@@ -7,19 +7,27 @@
 @{
     PrivateData       = @{
         PSData = @{
-            LastUpdate = '2026-10-26'
+            LastUpdate = '2026-11-01'
             Tags         = @('Garmin', 'GarminConnect', 'PowerShell', 'PowerShellModule', 'FIT', 'TCX', 'Health', 'Fitness', 'BodyComposition', 'GarminConnectCare')
             ProjectUri   = 'https://github.com/HerrHozi/GCCare'
             LicenseUri   = 'https://github.com/HerrHozi/GCCare/blob/main/LICENSE'
             ReleaseNotes = '            
 
-2026.6.1.1089
-        - Added & improved Function: 
-        - Add-GarminBodyComposition
-        - Get-GarminBadge
-        - Get-GarminActivity
+2026.11.1.800
+        - Security: the Garmin token file (gctoken.json) is now encrypted with Windows DPAPI (current user + this computer)
+        - A copied token file cannot be used on another computer or by another user
+        - An existing plain-text token file is encrypted automatically on the next save
 
-- Version 2026.10.2.714
+2026.10.13.650
+        - Added Function Add-GarminHydration (alias Add-Hydration): log water intake in ml for one day or the last X days
+
+2026.10.3.1089
+        - Added Function Add-GarminBodyComposition (alias Add-BodyComposition): log a single weigh-in
+        - Added Function Get-GarminBadge (alias Get-GarminBadges): earned, available and non-completed badges
+        - Added Function Get-GarminActivity: activities with grouping by year, month, week or activity type
+        - Improved: custom selections for badges and activities, optional values only when specified
+
+2026.10.2.714
         - Replaced all Python Functions by PowerShell
 
 2026.8.19.925
@@ -49,7 +57,7 @@
     
 
     RootModule        = 'GCCare.psm1'
-    ModuleVersion     = '2026.10.26.1130'
+    ModuleVersion     = '2026.11.1.800'
     GUID              = '18240772-2f3d-408e-be7e-bc1ca3d407d9'
 
     Author            = 'Holger Zimmermann | zimmermann.holger@live.de'

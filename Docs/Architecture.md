@@ -158,7 +158,7 @@ sequenceDiagram
         GT->>DI: POST /oauth/token (grant: service_ticket)
         DI-->>GT: 200 → access + refresh token (stop) / else next ID
     end
-    GT->>FS: { di_token, di_refresh_token, di_client_id } (UTF-8, no BOM)
+    GT->>FS: { di_token, di_refresh_token, di_client_id } (DPAPI-encrypted, Save-GarminTokenStore)
     GT-->>U: AccessToken, ClientId, ExpiresAt
 ```
 
@@ -177,7 +177,7 @@ flowchart LR
     D --> E{exp − now<br/>&lt; 15 min?}
     E -- no --> F[Return di_token]
     E -- yes --> G[POST diauth /oauth/token<br/>grant_type=refresh_token]
-    G --> H[Rewrite gctoken.json]
+    G --> H[Rewrite gctoken.json<br/>encrypted]
     H --> F
 ```
 
@@ -188,6 +188,14 @@ flowchart LR
 3. `~\.garminconnect\gctoken.json`
 
 A directory always means `<dir>\gctoken.json`. Only a *leading* `~` is expanded, so 8.3 short paths such as `C:\Users\HOLGER~1` stay intact.
+
+**Token encryption** (`Save-GarminTokenStore` / `Read-GarminTokenStore`):
+
+- The token store (JSON) is encrypted with `System.Security.Cryptography.ProtectedData` in two layers: first `DataProtectionScope.CurrentUser`, then `DataProtectionScope.LocalMachine`, both with a fixed entropy string. The result is written as Base64.
+- Decrypting needs **both** the same Windows user and the same computer, regardless of whether the machine is local, domain-joined or Entra ID-joined. A copied file cannot be used elsewhere.
+- `Read-GarminTokenStore` also accepts a legacy plain-text JSON file (first character `{`); the next `Save-GarminTokenStore` call encrypts it.
+- If decryption fails, `Read-GarminTokenStore` throws a message asking for a new sign-in with `Get-GarminToken`.
+- DPAPI protects the file at rest only. Code running as the same user on the same computer can still decrypt it.
 
 > ⚠️ `gctoken.json` holds a long-lived refresh token, which gives full access to the Garmin account. Never commit it.
 
@@ -402,7 +410,7 @@ Shared logging helpers (`Write-Log`, `Invoke-Output`, `Get-FunctionName`, `Get-R
 | `Invoke-TCXFileAnalysis` | internal helpers only |
 | `Update-TCXFile` | `Edit-ActivityLapsInGrid` → `Get-StairMasterMetrics`, `Get-DistanceInMeters`, `Get-HeightGain` |
 
-`Invoke-GarminConnectApi` → `Get-GarminAccessToken` → `Resolve-GarminTokenFile`, `ConvertFrom-GarminJwtPayload`, `Get-GarminNativeHeaders` (and `Get-GarminToken` when no token exists).
+`Invoke-GarminConnectApi` → `Get-GarminAccessToken` → `Resolve-GarminTokenFile`, `Read-GarminTokenStore`, `Save-GarminTokenStore`, `ConvertFrom-GarminJwtPayload`, `Get-GarminNativeHeaders` (and `Get-GarminToken` when no token exists; it also uses `Read-GarminTokenStore` and `Save-GarminTokenStore`).
 
 ---
 
@@ -410,7 +418,7 @@ Shared logging helpers (`Write-Log`, `Invoke-Output`, `Get-FunctionName`, `Get-R
 
 | Path | Written by | Content |
 | --- | --- | --- |
-| `~\.garminconnect\gctoken.json` | `Get-GarminToken`, `Get-GarminAccessToken` | DI access/refresh token, client ID |
+| `~\.garminconnect\gctoken.json` | `Get-GarminToken`, `Get-GarminAccessToken` (via `Save-GarminTokenStore`) | DI access/refresh token, client ID (DPAPI-encrypted: current user + this computer) |
 | `~\GCCare\Config\GCCare.json` | module import, `Save-GCCareCustomSelection` | user configuration |
 | `~\GCCare\FitFiles\*.fit` | `Convert-TanitaExportToFitFile` | generated weight FIT files |
 | `~\GCCare\FitFiles\Uploaded\` | `Send-FitFileToGarminConnect` | archived (uploaded/duplicate) FIT files |

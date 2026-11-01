@@ -9,8 +9,8 @@
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.10.26.1130
-Last Update:     2026-10-26
+Current Version: 2026.11.1.800
+Last Update:     2026-11-01
 ```
 
 GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It signs in to Garmin Connect, talks to the Garmin Connect API, creates and uploads FIT files, converts body-data CSV exports, calculates weekly averages, reads badges, user profile and the latest activity, and analyzes or adjusts TCX files - without any external runtime.
@@ -47,12 +47,12 @@ By default, GCCare stores generated data and intermediate files under `$env:USER
 - `Docs/`: additional documentation, e.g. the Garmin Connect API reference (`GarminConnectApi.md`)
 - `Examples/`: sample FIT, TCX, and CSV files
 - `$env:USERPROFILE\GCCare`: default per-user workspace for generated FIT files, logs, and configuration
-- `~\.garminconnect\gctoken.json`: default Garmin Connect token store
+- `~\.garminconnect\gctoken.json`: default Garmin Connect token store (encrypted with Windows DPAPI, see [Token security](#token-security))
 
 ## Requirements
 
 - Windows
-- PowerShell 7.1 or later
+- PowerShell 7.2 or later
 
 No additional runtimes or packages are required.
 
@@ -92,9 +92,21 @@ On import, the module creates its working folders under `$env:USERPROFILE\GCCare
 Get-GarminToken -Test
 ```
 
-`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\gctoken.json`. All Garmin Connect commands use this file and renew the access token automatically. If no token file exists yet, any Garmin Connect command starts this sign-in by itself - so calling `Get-GarminToken` first is optional.
+`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\gctoken.json`, encrypted with Windows DPAPI (current user and this computer - a copied file cannot be used elsewhere). An existing plain-text token file is encrypted automatically on the next token refresh. All Garmin Connect commands use this file and renew the access token automatically. If no token file exists yet, any Garmin Connect command starts this sign-in by itself - so calling `Get-GarminToken` first is optional.
 
 To use another token location, pass `-TokenStore` to the commands or set `$env:GARMINTOKENS`.
+
+### Token security
+
+The token file `gctoken.json` is **not stored in plain text**. It is encrypted with the Windows Data Protection API (DPAPI) in two layers, first for the current user and then for the local computer:
+
+- It can only be decrypted by the **same Windows user on the same computer** that created it.
+- A copy of the file (backup, cloud sync, e-mail, another PC or another user) is useless; you get a message to sign in again with `Get-GarminToken`.
+- This applies to local, domain-joined and Entra ID-joined machines alike.
+- An existing plain-text token file from an earlier version is still read and is encrypted automatically the next time the token is saved (sign-in or token refresh). `Get-GarminToken -Refresh` does this right away.
+- The file is no longer readable in an editor. If you move to a new computer, or after a Windows user profile reset, sign in again with `Get-GarminToken`.
+
+DPAPI protects the file at rest. Programs running as your user on your computer can still use the token, and the `AccessToken` returned by `Get-GarminToken` is plain text in the PowerShell session, so do not write it to logs.
 
 ### Show the Garmin Connect user
 
@@ -282,7 +294,7 @@ Most public functions use the module's common output helpers and support optiona
 ## Recommended Safety Practices
 
 - Use your own Garmin account and valid test data.
-- Keep the token file `gctoken.json` private and never commit it to a repository - it grants access to your Garmin account.
+- Keep the token file `gctoken.json` private and never commit it to a repository - it grants access to your Garmin account. It is encrypted with Windows DPAPI (current user + this computer), but you should still treat it as a secret.
 - Keep backups of source files before conversion or update operations.
 - Test a conversion with `-LastX 1` before uploading many files to Garmin Connect.
 - Store all generated data in `$env:USERPROFILE\GCCare` to keep the working directory consistent and easy to back up.

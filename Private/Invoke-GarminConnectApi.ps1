@@ -83,7 +83,7 @@ function Get-GarminAccessToken {
 
     $store = $null
     if (Test-Path -LiteralPath $tokenFile -PathType Leaf) {
-        $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
+        $store = Read-GarminTokenStore -Path $tokenFile
     }
 
     # No (usable) token yet: sign in interactively and continue with the new token
@@ -94,7 +94,7 @@ function Get-GarminAccessToken {
         if (-not (Test-Path -LiteralPath $tokenFile -PathType Leaf)) {
             throw "Garmin Connect sign-in did not create a token file at '$tokenFile'."
         }
-        $store = Get-Content -LiteralPath $tokenFile -Raw | ConvertFrom-Json
+        $store = Read-GarminTokenStore -Path $tokenFile
     }
 
     $payload = ConvertFrom-GarminJwtPayload -Token $store.di_token
@@ -125,7 +125,7 @@ function Get-GarminAccessToken {
         di_refresh_token = if ($data.PSObject.Properties['refresh_token'] -and $data.refresh_token) { $data.refresh_token } else { $store.di_refresh_token }
         di_client_id     = if ($newPayload -and $newPayload.client_id) { [string]$newPayload.client_id } else { $store.di_client_id }
     }
-    $updatedStore | ConvertTo-Json -Compress | Set-Content -LiteralPath $tokenFile -Encoding utf8NoBOM
+    Save-GarminTokenStore -Path $tokenFile -Store $updatedStore
 
     return $updatedStore.di_token
 }

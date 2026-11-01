@@ -1,6 +1,7 @@
 _ToDo/*
 _MyUtilities/*
 .vscode/*
+.claude/*
 Export/*
 Lib/*
 GCCare.code-workspace
@@ -8,3 +9,4 @@ launch.json
 your_data/*
 Corefunctions/*
 Claude.md
+ChangeLog.md
