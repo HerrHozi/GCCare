@@ -9,8 +9,8 @@
 
 ```Text
 Author:          Holger Zimmermann | zimmermann.holger@live.de
-Current Version: 2026.10.3.686
-Last Update:     2026-10-03
+Current Version: 2026.11.1.800
+Last Update:     2026-11-01
 ```
 
 GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-composition exports, and FIT/TCX file handling. It signs in to Garmin Connect, talks to the Garmin Connect API, creates and uploads FIT files, converts body-data CSV exports, calculates weekly averages, reads badges, user profile and the latest activity, and analyzes or adjusts TCX files - without any external runtime.
@@ -18,10 +18,10 @@ GCCare is a pure PowerShell module for Garmin Connect workflows, Tanita body-com
 ## Project Information
 
 - Author: Holger Zimmermann
-- Project:   <https://github.com/HerrHozi/GCCare>
-- Blog:      <https://herrhozi.com>
-- Garmin:    <https://connect.garmin.com/app/profile/00zimbo> | feel free to connect
-- Strava:    <https://www.strava.com/athletes/69009718>  | feel free to connect
+- Project: <https://github.com/HerrHozi/GCCare>
+- Blog: <https://herrhozi.com>
+- Garmin: <https://connect.garmin.com/app/profile/00zimbo> | feel free to connect
+- Strava: <https://www.strava.com/athletes/69009718>  | feel free to connect
 - License: MIT
 
 ## What GCCare Does
@@ -33,6 +33,7 @@ GCCare currently provides the following capabilities:
 - Convert Tanita CSV exports into Garmin-compatible weight FIT files.
 - Upload FIT files to Garmin Connect from your personal workspace folder.
 - Add a single weigh-in with body composition values (kg or lbs) to Garmin Connect.
+- Add water intake (hydration) for one day or the last X days.
 - Calculate weekly averages from body-composition data.
 - Analyze TCX lap metrics such as distance, time, moving time, ascent, descent, pace, and heart rate.
 - Update TCX files with recalculated lap distance and elevation values.
@@ -46,12 +47,12 @@ By default, GCCare stores generated data and intermediate files under `$env:USER
 - `Docs/`: additional documentation, e.g. the Garmin Connect API reference (`GarminConnectApi.md`)
 - `Examples/`: sample FIT, TCX, and CSV files
 - `$env:USERPROFILE\GCCare`: default per-user workspace for generated FIT files, logs, and configuration
-- `~\.garminconnect\gctoken.json`: default Garmin Connect token store
+- `~\.garminconnect\gctoken.json`: default Garmin Connect token store (encrypted with Windows DPAPI, see [Token security](#token-security))
 
 ## Requirements
 
 - Windows
-- PowerShell 7.1 or later
+- PowerShell 7.2 or later
 
 No additional runtimes or packages are required.
 
@@ -91,9 +92,21 @@ On import, the module creates its working folders under `$env:USERPROFILE\GCCare
 Get-GarminToken -Test
 ```
 
-`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\gctoken.json`. All Garmin Connect commands use this file and renew the access token automatically. If no token file exists yet, any Garmin Connect command starts this sign-in by itself - so calling `Get-GarminToken` first is optional.
+`Get-GarminToken` asks for e-mail, password and - if enabled - the MFA code, and saves the tokens to `~\.garminconnect\gctoken.json`, encrypted with Windows DPAPI (current user and this computer - a copied file cannot be used elsewhere). An existing plain-text token file is encrypted automatically on the next token refresh. All Garmin Connect commands use this file and renew the access token automatically. If no token file exists yet, any Garmin Connect command starts this sign-in by itself - so calling `Get-GarminToken` first is optional.
 
 To use another token location, pass `-TokenStore` to the commands or set `$env:GARMINTOKENS`.
+
+### Token security
+
+The token file `gctoken.json` is **not stored in plain text**. It is encrypted with the Windows Data Protection API (DPAPI) in two layers, first for the current user and then for the local computer:
+
+- It can only be decrypted by the **same Windows user on the same computer** that created it.
+- A copy of the file (backup, cloud sync, e-mail, another PC or another user) is useless; you get a message to sign in again with `Get-GarminToken`.
+- This applies to local, domain-joined and Entra ID-joined machines alike.
+- An existing plain-text token file from an earlier version is still read and is encrypted automatically the next time the token is saved (sign-in or token refresh). `Get-GarminToken -Refresh` does this right away.
+- The file is no longer readable in an editor. If you move to a new computer, or after a Windows user profile reset, sign in again with `Get-GarminToken`.
+
+DPAPI protects the file at rest. Programs running as your user on your computer can still use the token, and the `AccessToken` returned by `Get-GarminToken` is plain text in the PowerShell session, so do not write it to logs.
 
 ### Show the Garmin Connect user
 
@@ -159,6 +172,15 @@ Add-GarminBodyComposition -Weight 94,5 -BodyFat 26,7 -BodyWater 54,7 -MuscleMass
 
 Only `-Weight` is mandatory; without `-Date`, the current date and time is used. Decimal numbers may be entered with `.` or `,`. Weight, muscle and bone mass are read in kg or lbs depending on the measurement system of the Garmin Connect profile (override with `-Unit`); the BMI is calculated from the profile height when `-Bmi` is not given. The values are uploaded as a temporary FIT file - values that are not passed stay empty in Garmin Connect. Use `-WhatIf` to create the FIT file without uploading it.
 
+### Add hydration
+
+```powershell
+Add-GarminHydration 500
+Add-GarminHydration 500 -LastX 7
+```
+
+Adds the amount in ml to today's hydration (or `-Date`). With `-LastX 7`, the same amount is also added to the six days before. A negative value corrects a wrong entry; `-WhatIf` only shows the entries.
+
 ### Calculate weekly averages from body data
 
 ```powershell
@@ -209,6 +231,7 @@ The module currently exports the following commands:
 | Command | Alias | Purpose |
 | --- | --- | --- |
 | `Add-GarminBodyComposition` | `Add-BodyComposition` | Add a single weigh-in with optional body composition values (kg or lbs) to Garmin Connect. |
+| `Add-GarminHydration` | `Add-Hydration` | Add water intake in ml to Garmin Connect for one day or the last X days. |
 | `Convert-TanitaExportToFitFile` | None | Convert Tanita CSV exports to Garmin-compatible weight FIT files and optionally upload them. |
 | `Get-GarminActivity` | None | Return Garmin Connect activities (default: last 10 runs) with distance, time, pace and elevation in km or miles, optionally grouped by year, month, week or activity type. |
 | `Get-GarminBadge` | `Get-GarminBadges` | Return earned, available or non-completed Garmin Connect badges with points and level, optionally grouped by year, month or name, or with a custom selection from `GCCare.json`. |
@@ -229,6 +252,7 @@ Get-Help Get-GarminBadge -Full
 Get-Help Get-GarminActivity -Full
 Get-Help Get-GarminLastActivity -Full
 Get-Help Add-GarminBodyComposition -Full
+Get-Help Add-GarminHydration -Full
 Get-Help Convert-TanitaExportToFitFile -Full
 Get-Help Send-FitFileToGarminConnect -Full
 Get-Help Get-WeeklyBodyMetrics -Full
@@ -270,7 +294,7 @@ Most public functions use the module's common output helpers and support optiona
 ## Recommended Safety Practices
 
 - Use your own Garmin account and valid test data.
-- Keep the token file `gctoken.json` private and never commit it to a repository - it grants access to your Garmin account.
+- Keep the token file `gctoken.json` private and never commit it to a repository - it grants access to your Garmin account. It is encrypted with Windows DPAPI (current user + this computer), but you should still treat it as a secret.
 - Keep backups of source files before conversion or update operations.
 - Test a conversion with `-LastX 1` before uploading many files to Garmin Connect.
 - Store all generated data in `$env:USERPROFILE\GCCare` to keep the working directory consistent and easy to back up.

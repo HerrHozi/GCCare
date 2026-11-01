@@ -60,13 +60,13 @@ function Invoke-WingetInstall {
         & winget @wingetArgs *> $captureFile
         $exitCode = $LASTEXITCODE
         Add-LogFileContent -Header "winget install $PackageId (scope=$Scope, exit=$exitCode)" -FilePath $captureFile
-    } finally {
+    }
+    finally {
         Remove-Item -Path $captureFile -Force -ErrorAction SilentlyContinue
     }
 
     ######################## main code ############################
     $runtime = Get-RunTime -StartRunTime $StartRunTime
-    #Add-SAFunctionRunTime -Function $CurrentFunction -Runtime $runtime
     Write-Log -Message "    Run Time: $runtime [h] ###"
     Write-Log -Message "### End Function $CurrentFunction ###"
 

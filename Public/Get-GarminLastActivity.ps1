@@ -62,10 +62,7 @@ function Get-GarminLastActivity {
         [switch]$EnableLogging
     )
 
-    $CurrentFunction = Get-FunctionName
-    Write-Log -Message "### Start Function $CurrentFunction ###"
-    $StartRunTime = (Get-Date).ToString($Script:DateFormatLog)
-    #################### main code | out- host #####################
+    $info = Measure-FunctionRuntime -Begin
 
     Invoke-Output -Type Header -Message "Fetching last Garmin Connect activity..."
 
@@ -100,11 +97,7 @@ function Get-GarminLastActivity {
         }
     }
 
-    Invoke-Output -Type Success -Message "Last Garmin Connect activity fetched successfully."
-    ######################## main code ############################
-    $runtime = Get-RunTime -StartRunTime $StartRunTime
-    Write-Log -Message "    Run Time: $runtime [h] ###"
-    Write-Log -Message "### End Function $CurrentFunction ###"
+    Measure-FunctionRuntime -End -Details $info
 
-    return $result
+    return $result 
 }

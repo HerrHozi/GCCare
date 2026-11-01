@@ -196,7 +196,7 @@ Invoke-GarminConnectApi '/bloodpressure-service/bloodpressure' -Method Post -Bod
 | Method | Endpoint | Query / Body | garminconnect |
 | --- | --- | --- | --- |
 | GET | `/usersummary-service/usersummary/hydration/daily/{date}` | - | `get_hydration_data` |
-| PUT | `/usersummary-service/usersummary/hydration/log` | Body: `calendarDate`, `timestampLocal`, `valueInML` | `add_hydration_data` |
+| PUT | `/usersummary-service/usersummary/hydration/log` | Body: `calendarDate`, `timestampLocal`, `valueInML` | `add_hydration_data` (used by `Add-GarminHydration`) |
 | GET | `/nutrition-service/food/logs/{date}` | - | `get_nutrition_daily_food_log` |
 | GET | `/nutrition-service/meals/{date}` | - | `get_nutrition_daily_meals` |
 | GET | `/nutrition-service/settings/{date}` | - | `get_nutrition_daily_settings` |
